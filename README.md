@@ -12,4 +12,4 @@ The system stores detailed data on Employees, Branches , Roles , Shifts , Guidan
 Placement and Compensation Management: Connecting employees to specific roles and managing salary data  based on their position.
 Operational Control in Branches: Managing a smart work schedule that links employees to shifts, ensuring each shift is assigned to a specific branch and staffed with the required number of employees.
 Human Capital Development: Tracking professional certifications to ensure high-quality service, and managing employee participation in corporate events  to strengthen company loyalty.
-
+(ERD)[ERD diagram]!
