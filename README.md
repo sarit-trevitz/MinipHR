@@ -23,4 +23,4 @@ Operational Control in Branches: Managing a smart work schedule that links emplo
 
 Human Capital Development: Tracking professional certifications to ensure high-quality service, and managing employee participation in corporate events  to strengthen company loyalty.
 
-![ERD diagram](https://github.com/sarit-trevitz/MinipHR/blob/main/erdplus.png)
+![ERD diagram](https://github.com/sarit-trevitz/MinipHR/blob/main/erdPlus.png)
