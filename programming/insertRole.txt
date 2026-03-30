@@ -1,0 +1,16 @@
+INSERT INTO ROLE (Rid, Rname, Rdescription, Rrequirements_json) VALUES
+(1, 'Sales Associate', 'Responsible for direct customer assistance and reaching sales targets', '{"experience": "None", "skills": ["Communication", "Persuasion"]}'),
+(2, 'Shift Manager', 'Oversees daily operations during a specific shift and manages staff', '{"experience": "2 years", "skills": ["Leadership", "Problem Solving"]}'),
+(3, 'Store Manager', 'Overall responsibility for the branch, financial goals, and inventory', '{"experience": "5 years", "skills": ["Management", "P&L Analysis"]}'),
+(4, 'Cashier', 'Processes transactions, handles returns, and manages the cash drawer', '{"experience": "None", "skills": ["Accuracy", "Service"]}'),
+(5, 'Customer Service Representative', 'Handles inquiries, complaints, and provides post-purchase support', '{"experience": "1 year", "skills": ["Empathy", "Patience"]}'),
+(6, 'Stock Room Coordinator', 'Organizes incoming inventory and ensures sizes are available on the floor', '{"experience": "None", "skills": ["Physical Strength", "Organization"]}'),
+(7, 'Visual Merchandiser', 'Maintains the store layout and window displays to attract customers', '{"experience": "2 years", "skills": ["Creativity", "Styling"]}'),
+(8, 'Security Officer', 'Ensures the safety of the store, prevents theft, and monitors entrances', '{"license": "Security", "skills": ["Alertness"]}'),
+(9, 'Cleaning & Maintenance Staff', 'Maintains hygiene and tidiness of the showroom and stock area', '{"experience": "None", "skills": ["Reliability"]}'),
+(10, 'Delivery & Logistics Driver', 'Transports stock between the central warehouse and the store branch', '{"license": "C1", "skills": ["Punctuality"]}');
+
+Output:
+INSERT 0 10
+
+Query returned successfully in 190 msec.

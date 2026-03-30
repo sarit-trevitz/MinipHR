@@ -1,0 +1,16 @@
+INSERT INTO EVENT (EVid, EVdate, EVdescription, EVbudget, EVtype) VALUES
+(1, '2026-04-10', 'Annual Strategic Growth Meeting', 15000, 'Managers Only Event'),
+(2, '2026-04-15', 'Advanced Customer Persuasion Workshop', 8000, 'Sales Team Event'),
+(3, '2026-05-01', 'Summer Collection Kick-off Happy Hour', 5000, 'Sales Associates Event'),
+(4, '2026-05-10', 'Company-Wide Team Building Day', 50000, 'All Staff Event'),
+(5, '2026-05-20', 'Inventory & Safety Training Session', 3500, 'Warehouse Staff Event'),
+(6, '2026-06-05', 'New Product Line Launch Conference', 25000, 'Marketing & Sales Event'),
+(7, '2026-06-15', 'Regional Management Excellence Gala', 12000, 'Managers Only Event'),
+(8, '2026-07-01', 'Retail Service & Experience Seminar', 6500, 'Sales Associates Event'),
+(9, '2026-07-10', 'Digital Marketing & Content Strategy Workshop', 4000, 'Marketing & Sales Event'),
+(10, '2026-08-20', 'End of Season Celebration Party', 100000, 'All Staff Event');
+
+Output:
+INSERT 0 10
+
+Query returned successfully in 181 msec.
