@@ -1,7 +1,5 @@
-
 import csv
 import json
-
 def generate_professional_shoe_roles():
     # הגדרת מחלקות ותפקידים
     categories = {
