@@ -308,3 +308,69 @@ ROLLBACK; //restore the original data
 ![update 3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update3.2.png)
 ![update 3.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update3.3.png)
 ![update 3.4 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update3.4.png)
+
+Constraints:
+The purpose of constraints is to ensure only valid and accurate data is entered into the database, preventing human errors and maintaining data integrity and reliability.
+
+1. A constraint to ensure that the number of employees required for a shift is at least 2.
+
+ALTER TABLE SHIFT
+ADD CONSTRAINT check_minimum_employees 
+CHECK (Semp_num >= 2);
+
+![constraint 1.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/constraint1.1.png)
+![constraint 1.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/constraint1.2.png)
+
+
+2. A constraint to ensure that the branch phone number follows a specific format (e.g., XXX-XXX-XXXX).
+
+ALTER TABLE BRANCH
+ADD CONSTRAINT chk_phone_format
+CHECK (Bphone SIMILAR TO '[0-9]{3}-[0-9]{3}-[0-9]{4}');
+
+![constraint 2.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/constraint2.1.png)
+![constraint 2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/constraint2.2.png)
+
+
+
+3. A constraint to ensure that the salary in the HAS table is above a certain threshold.  
+
+ALTER TABLE HAS
+ADD CONSTRAINT check_salary_minimum
+CHECK (Salary > 7000);
+
+![constraint 3.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/constraint3.1.png)
+![constraint 3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/constraint3.2.png)
+
+
+Index:
+The purpose of an index is to allow the database to find data quickly without scanning all the rows in a table, thereby reducing execution time.
+
+1. A index on the column ginstructor in the GUIDENCE table.
+
+CREATE INDEX index_ginstructor 
+ON GUIDENCE (ginstructor);
+
+![index 1.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index1.1.png)
+![index 1.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index1.2.png)
+![index 1.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index1.3.png)
+
+
+2. A index on the column Eseniority in the EMPLOYEE table.
+
+CREATE INDEX index_eseniority 
+ON EMPLOYEE (Eseniority);
+
+![index 2.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index2.1.png)
+![index 2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index2.2.png)
+![index 2.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index2.3.png)
+
+
+3. A index on the column Stype in the SHIFT table.
+
+CREATE INDEX index_stype 
+ON SHIFT (Stype);
+
+![index 3.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index3.1.png)
+![index 3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index3.2.png)
+![index 3.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index3.3.png)
