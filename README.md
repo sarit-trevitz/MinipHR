@@ -129,70 +129,76 @@ This is why the inner join is more efficient.
  (we can see that in the running time in the buttom of the picture).
 
 
-3. Return the roles  and id of the employees who assign to each guidance.
+3. Return the number of empolyees who participate in each event.
 first way (3.1):
-explain: Split the computing by seperate to temporary table in order to remove the using of one more table - the guidenece table.
-WITH GuidanceRoles AS (              
-    SELECT DISTINCT A.Gid, H.Rid , H.Eid     
-    FROM ASSIGNTO A                   
-    JOIN HAS H ON A.Eid = H.Eid      
-)                                     
-SELECT GR.Gid, R.Rname, GR.Eid                
-FROM GuidanceRoles GR                 
-JOIN ROLE R ON GR.Rid = R.Rid        
-ORDER BY GR.Gid; 
+explain: The query does left join between two talbes-EVENT and PARTICIPATE and then does GROUP BY by evid, and then count the groups. 
+SELECT 
+    E.EVid, 
+    E.EVdescription, 
+    E.EVtype, 
+    COUNT(P.eid) AS EmployeeCount
+FROM EVENT E
+LEFT JOIN PARTICIPATE P ON E.EVid = P.evid
+GROUP BY E.EVid, E.EVdescription, E.EVtype
+ORDER BY EmployeeCount ASC;
 ![select 3.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select3.1.png)
 
 
 second way (3.2):
-explain: The query does inner join between four tables and return the role and id of each employees who assigned to a guidence. 
+explain: The counting is computing inside the Outer SELECT query.
 SELECT 
-    G.Gid, 
-    R.Rname,
-    H.Eid
-FROM GUIDENCE G
-INNER JOIN ASSIGNTO A ON G.Gid = A.Gid
-INNER JOIN HAS H ON A.Eid = H.Eid
-INNER JOIN ROLE R ON H.Rid = R.Rid;
+    E.EVid, 
+    E.EVdescription, 
+    E.EVtype,
+    (SELECT COUNT(P.eid) 
+     FROM PARTICIPATE P 
+     WHERE P.EVid = E.EVid) AS EmployeeCount
+FROM EVENT E
+ORDER BY EmployeeCount ASC;
+ORDER BY EmployeeCount ASC;
 ![select 3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select3.2.png)
 
 the difference between the methods:
-WITH table- Because it uses one less table the compute is harder and take more time.
-inner join- use all the required tables by simple actions so the computing is faster.
-This is why the inner join is more efficient.
- (we can see that in the running time in the buttom of the picture).
+left join- Because it connects the tables into one large entity and divides it into groups to count the employees in each pile at once.
+Outer SELECT- Because it goes through all the rows of the events table and sends a separate "auxiliary query" for each event to count its employees in the second table .
+This is why the left join is more efficient.
+(we can see that in the running time in the buttom of the picture).
 
- 4. Return the roles  and id of the employees who assign to each guidance.
+ 4.  Return the number of shifts for each shift type in each month of the year 2026.
 first way (4.1):
-explain: Split the computing by seperate to temporary table in order to remove the using of one more table - the guidenece table.
-WITH GuidanceRoles AS (              
-    SELECT DISTINCT A.Gid, H.Rid , H.Eid     
-    FROM ASSIGNTO A                   
-    JOIN HAS H ON A.Eid = H.Eid      
-)                                     
-SELECT GR.Gid, R.Rname, GR.Eid                
-FROM GuidanceRoles GR                 
-JOIN ROLE R ON GR.Rid = R.Rid        
-ORDER BY GR.Gid; 
+explain: Scans the table once and groups all rows into groups by month and type, so that the count is performed on all groups simultaneously.
+SELECT 
+    EXTRACT(MONTH FROM sdate) AS Month,
+    EXTRACT(YEAR FROM sdate) AS Year,
+    stype AS ShiftType,
+    COUNT(sid) AS ShiftCount
+FROM SHIFT
+WHERE EXTRACT(YEAR FROM sdate) = 2026
+GROUP BY Year, Month, stype
+ORDER BY Month ASC, ShiftType ASC;
 ![select 4.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select4.1.png)
 
 
 second way (4.2):
-explain: The query does inner join between four tables and return the role and id of each employees who assigned to a guidence. 
-SELECT 
-    G.Gid, 
-    R.Rname,
-    H.Eid
-FROM GUIDENCE G
-INNER JOIN ASSIGNTO A ON G.Gid = A.Gid
-INNER JOIN HAS H ON A.Eid = H.Eid
-INNER JOIN ROLE R ON H.Rid = R.Rid;
+explain: Goes through all the rows, and for each individual row it runs a search and recount on the entire table to find matches for the specific month and type.
+SELECT DISTINCT
+    EXTRACT(MONTH FROM sdate) AS Month,
+    EXTRACT(YEAR FROM sdate) AS Year,
+    stype AS ShiftType,
+    (SELECT COUNT(*) 
+     FROM SHIFT S2 
+     WHERE EXTRACT(MONTH FROM S2.sdate) = EXTRACT(MONTH FROM S1.sdate)
+       AND S2.stype = S1.stype
+       AND EXTRACT(YEAR FROM S2.sdate) = 2026) AS ShiftCount
+FROM SHIFT S1
+WHERE EXTRACT(YEAR FROM S1.sdate) = 2026
+ORDER BY Month ASC, ShiftType ASC;
 ![select 4.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select4.2.png)
 
 the difference between the methods:
-WITH table- Because it uses one less table the compute is harder and take more time.
-inner join- use all the required tables by simple actions so the computing is faster.
-This is why the inner join is more efficient.
+GROUP BY- Because it uses one less table the compute is harder and take more time.
+Outer SELECT- because it goes through all the months and sends a separate query for each month to count the number of shifts and types in the shifts table.
+This is why the GROUP BYis more efficient.
  (we can see that in the running time in the buttom of the picture).
 
 

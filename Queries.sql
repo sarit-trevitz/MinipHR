@@ -36,3 +36,49 @@ FROM GUIDENCE G
 INNER JOIN ASSIGNTO A ON G.Gid = A.Gid
 INNER JOIN HAS H ON A.Eid = H.Eid
 INNER JOIN ROLE R ON H.Rid = R.Rid;
+
+--3. Return the number of empolyees who participate in each event.
+
+SELECT 
+    E.EVid, 
+    E.EVdescription, 
+    E.EVtype, 
+    COUNT(P.eid) AS EmployeeCount
+FROM EVENT E
+LEFT JOIN PARTICIPATE P ON E.EVid = P.evid
+GROUP BY E.EVid, E.EVdescription, E.EVtype
+ORDER BY EmployeeCount ASC;
+
+SELECT 
+    E.EVid, 
+    E.EVdescription, 
+    E.EVtype,
+    (SELECT COUNT(P.eid) 
+     FROM PARTICIPATE P 
+     WHERE P.EVid = E.EVid) AS EmployeeCount
+FROM EVENT E
+ORDER BY EmployeeCount ASC;
+
+--4. Return the number of shifts for each shift type in each month of the year 2026.
+SELECT 
+    EXTRACT(MONTH FROM sdate) AS Month,
+    EXTRACT(YEAR FROM sdate) AS Year,
+    stype AS ShiftType,
+    COUNT(sid) AS ShiftCount
+FROM SHIFT
+WHERE EXTRACT(YEAR FROM sdate) = 2026
+GROUP BY Year, Month, stype
+ORDER BY Month ASC, ShiftType ASC;
+
+SELECT DISTINCT
+    EXTRACT(MONTH FROM sdate) AS Month,
+    EXTRACT(YEAR FROM sdate) AS Year,
+    stype AS ShiftType,
+    (SELECT COUNT(*) 
+     FROM SHIFT S2 
+     WHERE EXTRACT(MONTH FROM S2.sdate) = EXTRACT(MONTH FROM S1.sdate)
+       AND S2.stype = S1.stype
+       AND EXTRACT(YEAR FROM S2.sdate) = 2026) AS ShiftCount
+FROM SHIFT S1
+WHERE EXTRACT(YEAR FROM S1.sdate) = 2026
+ORDER BY Month ASC, ShiftType ASC;
