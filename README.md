@@ -202,8 +202,109 @@ This is why the GROUP BYis more efficient.
  (we can see that in the running time in the buttom of the picture).
 
 
+Delete:
+1. Delete the guidances that there are no employees assigned to- Select all the guidences that no in the result of the inner query that select all the raws from ASSIGNTO that Gid is no null.
+BEGIN; //begin the transaction
 
+DELETE FROM GUIDENCE
+WHERE Gid NOT IN (
+    SELECT DISTINCT Gid
+    FROM ASSIGNTO
+    WHERE Gid IS NOT NULL
+);
 
+ROLLBACK; //restore the original data
 
+![delete 1.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/delete1.1.png)
+![delete 1.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/delete1.2.png)
+![delete 1.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/delete1.3.png)
+![delete 1.4 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/delete1.4.png)
 
+2. Delete the Employees that are not schedule to any shift - first delete these employees from connected tables - ASSIGNTO, HAS, PARTICIPATE - because of the foregin key problem, and just then delete the employee itself.
 
+BEGIN; //begin the transaction
+
+DELETE FROM ASSIGNTO
+WHERE eid IN (SELECT eid FROM EMPLOYEE WHERE eid NOT IN (SELECT eid FROM SCHEDULE WHERE eid IS NOT NULL));
+DELETE FROM HAS
+WHERE eid IN (SELECT eid FROM EMPLOYEE WHERE eid NOT IN (SELECT eid FROM SCHEDULE WHERE eid IS NOT NULL));
+DELETE FROM PARTICIPATE
+WHERE eid IN (SELECT eid FROM EMPLOYEE WHERE eid NOT IN (SELECT eid FROM SCHEDULE WHERE eid IS NOT NULL));
+DELETE FROM EMPLOYEE
+WHERE eid NOT IN (SELECT eid FROM SCHEDULE WHERE eid IS NOT NULL);
+SELECT * FROM EMPLOYEE;
+
+ROLLBACK; //restore the original data
+
+![delete 2.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/delete2.1.png)
+![delete 2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/delete2.2.png)
+![delete 2.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/delete2.3.png)
+
+3. Delete the shifts on 2026-05-13 - for example: this day was Election day so all the stores were closed - so the shifts weren't exist.
+
+BEGIN; //begin the transaction
+
+DELETE FROM SCHEDULE
+WHERE Sid IN (
+    SELECT Sid 
+    FROM SHIFT 
+    WHERE Sdate = '2026-05-13'
+);
+
+DELETE FROM SHIFT
+WHERE Sdate = '2026-05-13';
+
+COMMIT; //save the changes on the tables
+
+![delete 3.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/delete3.1.png)
+![delete 3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/delete3.2.png)
+![delete 3.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/delete3.3.png)
+
+Update:
+1. Update the salary of each employee who it's seniority is over 5 years by SET func.
+
+BEGIN; //begin the transaction
+
+UPDATE HAS
+SET Hsalary = Hsalary * 1.10;
+
+COMMIT; //save the changes on the tables
+
+![update 1.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update1.1.png)
+![update 1.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update1.2.png)
+![update 1.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update1.3.png)
+
+2. Update the employee number that are require in a shift so if this is the end of the month - 
+--day 29/30/31 - we need to increase the employee numbers by 2.
+
+BEGIN; //begin the transaction
+
+UPDATE SHIFT
+SET Semp_num = Semp_num + 2
+WHERE EXTRACT(DAY FROM Sdate) IN (29, 30, 31);
+
+COMMIT; //save the changes on the tables
+
+![update 2.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update2.1.png)
+![update 2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update2.2.png)
+![update 2.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update2.3.png)
+
+3. Update the budget of each event that more than 100 employees participate in it by increasing it by 150%.
+
+BEGIN; //begin the transaction
+
+UPDATE EVENT
+SET EVbudget = EVbudget * 1.5
+WHERE EVid IN (
+    SELECT EVid
+    FROM PARTICIPATE
+    GROUP BY EVid
+    HAVING COUNT(Eid) > 8
+);
+
+ROLLBACK; //restore the original data
+
+![update 3.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update3.1.png)
+![update 3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update3.2.png)
+![update 3.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update3.3.png)
+![update 3.4 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update3.4.png)
