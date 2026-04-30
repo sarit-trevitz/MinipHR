@@ -320,8 +320,8 @@ ALTER TABLE SHIFT
 ADD CONSTRAINT check_minimum_employees 
 CHECK (Semp_num >= 2);
 
-![constraint 1.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/constraint1.1.png)
-![constraint 1.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/constraint1.2.png)
+![constraint 1.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/Constraint1.1.png)
+![constraint 1.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/Constraint1.2.png)
 
 
 2. A constraint to ensure that the branch phone number follows a specific format (e.g., XXX-XXX-XXXX).
