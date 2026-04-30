@@ -45,6 +45,8 @@ DSD diagram:
 
 ![DSD diagram](https://github.com/sarit-trevitz/MinipHR/blob/main/images/DSD.png)
 
+![PGadminDSD diagram](https://github.com/sarit-trevitz/MinipHR/blob/main/images/DSDbyPGadmin.png)
+
 Screenshot of insert to DB methods:
 
 ![InsertEvent image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/insertEvent.png)
