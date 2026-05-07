@@ -29,11 +29,10 @@ JOIN ROLE R ON GR.Rid = R.Rid
 ORDER BY GR.Gid;                      
 
 SELECT 
-    G.Gid, 
+    A.Gid, 
     R.Rname,
     H.Eid
-FROM GUIDENCE G
-INNER JOIN ASSIGNTO A ON G.Gid = A.Gid
+FROM ASSIGNTO A
 INNER JOIN HAS H ON A.Eid = H.Eid
 INNER JOIN ROLE R ON H.Rid = R.Rid;
 
