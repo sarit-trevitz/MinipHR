@@ -113,20 +113,19 @@ ORDER BY GR.Gid;
 
 
 second way (2.2):
-explain: The query does inner join between four tables and return the role and id of each employees who assigned to a guidence. 
+explain: The query does inner join between three tables and return the role and id of each employees who assigned to a guidence. 
 SELECT 
-    G.Gid, 
+    A.Gid, 
     R.Rname,
     H.Eid
-FROM GUIDENCE G
-INNER JOIN ASSIGNTO A ON G.Gid = A.Gid
+FROM ASSIGNTO A
 INNER JOIN HAS H ON A.Eid = H.Eid
 INNER JOIN ROLE R ON H.Rid = R.Rid;
 ![select 2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select2.2.png)
 
 the difference between the methods:
-WITH table- Because it uses one less table the compute is harder and take more time.
-inner join- use all the required tables by simple actions so the computing is faster.
+WITH table- Because it uses temporary table it uses less optimizations.
+inner join- because it does inner join on all the required tables as one compenent so it can does many optimizations.
 This is why the inner join is more efficient.
  (we can see that in the running time in the buttom of the picture).
 
@@ -268,7 +267,12 @@ Update:
 BEGIN; //begin the transaction
 
 UPDATE HAS
-SET Hsalary = Hsalary * 1.10;
+SET Hsalary = Hsalary * 1.10
+WHERE eid IN (
+    SELECT eid 
+    FROM EMPLOYEE E 
+    WHERE E.Eseniority > 5
+);
 
 COMMIT; //save the changes on the tables
 
@@ -291,7 +295,7 @@ COMMIT; //save the changes on the tables
 ![update 2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update2.2.png)
 ![update 2.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update2.3.png)
 
-3. Update the budget of each event that more than 100 employees participate in it by increasing it by 150%.
+3. Update the budget of each event that more than 8 employees participate in it by increasing it by 150%.
 
 BEGIN; //begin the transaction
 
