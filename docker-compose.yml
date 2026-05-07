@@ -1,5 +1,5 @@
 services:
-  # בסיס הנתונים PostgreSQL
+  # PostgreSQL database service
   db:
     image: postgres:latest
     container_name: my_postgres

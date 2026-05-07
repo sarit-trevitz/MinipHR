@@ -66,10 +66,15 @@ Screenshot of insert to DB methods:
 
 
 SQL QUERIES:
+
 Select:
+
 1. Return how many employees are assigned to each role.
+
 first way (1.1):
+
 explain: The query does cartesian multiplication between two tables and looks for the equal raws in the equal colume and return the amount of employees group by the roles and the id of each role. 
+
 SELECT 
     R.Rid,
     R.Rname, 
@@ -81,7 +86,9 @@ GROUP BY R.Rid, R.Rname;
 
 
 second way (1.2):
+
 explain: The query does natural join between two tables and return the amount of employees group by the roles and the id of each role. 
+
 SELECT 
     R.Rid,
     Rname, 
@@ -92,14 +99,18 @@ GROUP BY R.Rid, R.Rname;
 ![select 1.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select1.2.png)
 
 the difference between the methods:
+
 Natural Join- Filters rows by matching values in columns with identical names.
 Cartesian Product- Combines every row from one table with every row from the other (no filtering).
 Natural join is more efficient because it filters automatically. (we can see that in the running time in the buttom of the picture).
 
 
 2. Return the roles  and id of the employees who assign to each guidance.
+
 first way (2.1):
+
 explain: Split the computing by seperate to temporary table in order to remove the using of one more table - the guidenece table.
+
 WITH GuidanceRoles AS (              
     SELECT DISTINCT A.Gid, H.Rid , H.Eid     
     FROM ASSIGNTO A                   
@@ -113,7 +124,9 @@ ORDER BY GR.Gid;
 
 
 second way (2.2):
+
 explain: The query does inner join between three tables and return the role and id of each employees who assigned to a guidence. 
+
 SELECT 
     A.Gid, 
     R.Rname,
@@ -124,6 +137,7 @@ INNER JOIN ROLE R ON H.Rid = R.Rid;
 ![select 2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select2.2.png)
 
 the difference between the methods:
+
 WITH table- Because it uses temporary table it uses less optimizations.
 inner join- because it does inner join on all the required tables as one compenent so it can does many optimizations.
 This is why the inner join is more efficient.
@@ -131,8 +145,11 @@ This is why the inner join is more efficient.
 
 
 3. Return the number of empolyees who participate in each event.
+
 first way (3.1):
+
 explain: The query does left join between two talbes-EVENT and PARTICIPATE and then does GROUP BY by evid, and then count the groups. 
+
 SELECT 
     E.EVid, 
     E.EVdescription, 
@@ -146,7 +163,9 @@ ORDER BY EmployeeCount ASC;
 
 
 second way (3.2):
+
 explain: The counting is computing inside the Outer SELECT query.
+
 SELECT 
     E.EVid, 
     E.EVdescription, 
@@ -160,6 +179,7 @@ ORDER BY EmployeeCount ASC;
 ![select 3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select3.2.png)
 
 the difference between the methods:
+
 left join- Because it connects the tables into one large entity and divides it into groups to count the employees in each pile at once.
 Outer SELECT- Because it goes through all the rows of the events table and sends a separate "auxiliary query" for each event to count its employees in the second table .
 This is why the left join is more efficient.
@@ -202,8 +222,67 @@ Outer SELECT- because it goes through all the months and sends a separate query 
 This is why the GROUP BYis more efficient.
  (we can see that in the running time in the buttom of the picture).
 
+5. Return the event that the participate in it is the maximum.
+
+explain: GROUPBY the EVid of PARTICIPATE and count the amount of employees in each group so we can find the group that has the maximum participating.
+
+SELECT E.*, COUNT(P.Eid) AS EmployeeCount
+FROM EVENT E
+JOIN PARTICIPATE P ON E.EVid = P.EVid
+GROUP BY E.EVid, E.EVDate, E.EVdescription, E.EVtype, E.EVbudget
+HAVING COUNT(P.Eid) >= ALL (
+    SELECT COUNT(Eid)
+    FROM PARTICIPATE
+    GROUP BY EVid
+);
+![select 5 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select5.png)
+
+6. Return the branches that have at least one employee with seniority greater than 10.
+
+explain: First select all the employee's senioritys to check if there at least 1 that is greater than 10 and take just the branches that these employees work in.
+
+SELECT DISTINCT B.*
+FROM Branch B
+JOIN Shift S ON B.Bid = S.Bid  
+JOIN Schedule SCH ON S.Sid = SCH.Sid
+WHERE 10 < ANY (
+    SELECT E.Eseniority
+    FROM Employee E
+    WHERE E.Eid = SCH.Eid
+);
+![select 6 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select6.png)
+
+7. Return the employees who are assigned to at least one guidance that Avi Cohen is the instructor of.
+
+explain:First select all the ASSIGNTO that their guidence's instroctur is Avi Cohen and then return all the employees taht exist in the above select.
+
+SELECT *
+FROM Employee E
+WHERE EXISTS (
+    SELECT *
+    FROM AssignTo A
+    JOIN Guidence G ON A.Gid = G.Gid
+    WHERE A.Eid = E.Eid AND G.Ginstructor = 'Avi Cohen'
+);
+![select 7 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select7.png)
+
+8. Return the roles that have the minimum number of employees assigned.
+
+explain: First GROUPBY the amount of employees in each roleand then return the roles that have the minimum employees.
+
+SELECT R.Rid,R.Rname, COUNT(H.Eid) AS EmployeeCount
+FROM Role R
+LEFT JOIN Has H ON R.Rid = H.Rid
+GROUP BY R.Rid, R.Rname
+HAVING COUNT(H.Eid) <= ALL (
+    SELECT COUNT(Eid)
+    FROM Has
+    GROUP BY Rid
+);
+![select 8 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/select8.png)
 
 Delete:
+
 1. Delete the guidances that there are no employees assigned to- Select all the guidences that no in the result of the inner query that select all the raws from ASSIGNTO that Gid is no null.
 BEGIN; //begin the transaction
 
@@ -316,6 +395,7 @@ ROLLBACK; //restore the original data
 ![update 3.4 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/update3.4.png)
 
 Constraints:
+
 The purpose of constraints is to ensure only valid and accurate data is entered into the database, preventing human errors and maintaining data integrity and reliability.
 
 1. A constraint to ensure that the number of employees required for a shift is at least 2.
@@ -338,7 +418,6 @@ CHECK (Bphone SIMILAR TO '[0-9]{3}-[0-9]{3}-[0-9]{4}');
 ![constraint 2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/constraint2.2.png)
 
 
-
 3. A constraint to ensure that the salary in the HAS table is above a certain threshold.  
 
 ALTER TABLE HAS
@@ -350,6 +429,7 @@ CHECK (Salary > 7000);
 
 
 Index:
+
 The purpose of an index is to allow the database to find data quickly without scanning all the rows in a table, thereby reducing execution time.
 
 1. A index on the column ginstructor in the GUIDENCE table.
