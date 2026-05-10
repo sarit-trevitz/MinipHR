@@ -460,3 +460,5 @@ ON SHIFT (Stype);
 ![index 3.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index3.1.png)
 ![index 3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index3.2.png)
 ![index 3.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index3.3.png)
+
+
