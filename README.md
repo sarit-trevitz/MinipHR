@@ -462,3 +462,242 @@ ON SHIFT (Stype);
 ![index 3.3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/index3.3.png)
 
 
+Integration stage:
+
+--create new DSD and ERD files:
+
+DSD new DB (design):
+![DSDdesign image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/DSDdesign.png)
+
+ERD new DB (design):
+![ERDdesign image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/ERDdesign.png)
+
+DSD integration:
+![DSDintegration image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/DSDintegration.png)
+
+ERD integration:
+![ERDintegration image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/ERDintegration.png)
+
+
+
+--stage 1: update the new schema's fields so it's compatible with the old schema (for example update the id so there are not the same as the old ones)
+
+#1:
+
+--update department table because of the constraint with employee table
+ALTER TABLE IF EXISTS public.department DROP CONSTRAINT IF EXISTS department_e_id_fkey; --delete the old constraint
+
+ALTER TABLE IF EXISTS public.department
+    ADD CONSTRAINT department_e_id_fkey FOREIGN KEY (e_id)
+    REFERENCES public.employee (e_id) MATCH SIMPLE
+    ON UPDATE CASCADE   
+    ON DELETE NO ACTION;
+
+![updateConstraint image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/updateConstraintDepartment.png)
+
+#2
+
+--update workship table because of the constraint with employee table
+ALTER TABLE IF EXISTS public.employee_workship DROP CONSTRAINT IF EXISTS employee_workship_e_id_fkey; --delete the old constraint
+
+ALTER TABLE IF EXISTS public.employee_workship
+    ADD CONSTRAINT employee_workship_e_id_fkey FOREIGN KEY (e_id)
+    REFERENCES public.employee (e_id) MATCH SIMPLE
+    ON UPDATE CASCADE
+    ON DELETE NO ACTION;
+
+![updateConstraint image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/updateConstraintWorkship.png)
+
+#3
+--Update the PK in the tables
+
+example: update employee table - id field
+UPDATE public.employee 
+SET e_id = e_id + 20000;
+
+![updateEmployee image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/updateEmployeeID.png)
+
+--stage 2: update the new schema's fields so it's names will be the same as the old schema (for example update the name of the field in employee table from e_id to Eid)
+
+explain:
+In order to combin similiar tables (such as EMPLOYEE table) we needed make sure that the names of the tables we want to combine are the same name, the column's names are the same, and if there are one or more column that exist in one table and not exist in the other - we need to add this column and the values there will be NULL.
+note: In EMPLOYEE table we defined the name field as one filed for both first name and last name. In the new given backup the name filed was seperated to first name and last name so we concat them to one field.
+
+   examples:
+
+  --Rename e_id to Eid
+  ALTER TABLE employee 
+  RENAME COLUMN e_id TO Eid;
+
+  --Union employee first name and last name to one field called Ename
+  ALTER TABLE employee 
+  ADD COLUMN Ename VARCHAR(255);
+  UPDATE employee 
+  SET Ename = CONCAT_WS(' ', first_name, last_name);
+  ALTER TABLE employee 
+  DROP COLUMN first_name,
+  DROP COLUMN last_name;
+
+
+
+
+
+--stage 3: add the constraints to the schemas - because the sependencies were not preserved when we imported the tabeles into the new DB.
+
+example:
+
+ALTER TABLE public.assignTo 
+ADD CONSTRAINT fk_guidence_assignTo
+FOREIGN KEY (Gid) REFERENCES public.guidence(Gid); 
+
+##VIEWS:##
+
+CREATE OR REPLACE VIEW- in order to the view table will be more dinamic- it's possible to make changes on the table we declar that if the table isn't exist- create it. and if it's already exist so just change it.
+
+--VIEW 1. Employee assignment to each shift that any branch exists to. 
+CREATE OR REPLACE VIEW public.v_branch_shifts_summary AS
+SELECT 
+    s.Sid AS shift_id,
+    s.Sdate AS shift_date,
+    s.Stype AS shift_type,
+    s.Bid AS branch_id,
+    e.Eid AS employee_id,
+    e.Ename AS employee_name
+FROM 
+    public.shift s
+JOIN 
+    public.employee e ON s.semp_num = e.Eid
+WHERE 
+    s.Bid IS NOT NULL;
+
+![view1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/selectView1.png)
+
+    --queries to check the view:
+
+    --return all shifts assigned to employee with id 4, ordered by shift date.
+
+    SELECT shift_id, shift_date, shift_type, employee_name
+    FROM public.v_branch_shifts_summary
+    WHERE employee_id = 4
+    ORDER BY shift_date ASC;
+![view1.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/view1.1.png)
+
+    --return the total number of shifts assigned to each branch.
+
+    SELECT branch_id, COUNT(shift_id) AS total_shifts
+    FROM public.v_branch_shifts_summary
+    GROUP BY branch_id;
+![view1.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/view1.2.png)
+    
+
+--VIEW 2. Logistics supplier orders with material details and current stock levels.
+
+CREATE OR REPLACE VIEW public.v_logistics_supplier_orders AS
+SELECT 
+    o.order_id,
+    o.order_date,
+    o.order_status,
+    o.total AS order_total_cost,
+    s.company_name AS supplier_name,
+    s.phone AS supplier_phone,
+    rm.r_name AS material_name,
+    rm.stock_quantity AS current_stock
+FROM 
+    public.supplyorder o
+JOIN 
+    public.supplier s ON o.s_id = s.s_id 
+JOIN 
+    public.includes inc ON o.order_id = inc.order_id
+JOIN 
+    public.rawmaterial rm ON inc.r_id = rm.r_id;
+
+![view2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/selectView2.png)
+
+--queries to check the view:
+
+--return all orders where the current stock of the material is less than 100, ordered by current stock ascending.
+
+    SELECT 
+    material_name, 
+    current_stock, 
+    supplier_name, 
+    supplier_phone,
+    order_date
+FROM 
+    public.v_logistics_supplier_orders
+WHERE 
+    current_stock < 100
+ORDER BY 
+    current_stock ASC;
+![view2.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/selectView2.1.png)
+
+    --return the maximum order total cost for each material, along with the material name and the total
+
+    number of times it has been ordered, ordered by highest order cost descending.
+    SELECT 
+    material_name, 
+    MAX(order_total_cost) AS highest_order_cost,
+    COUNT(order_id) AS total_times_ordered
+FROM 
+    public.v_logistics_supplier_orders
+GROUP BY 
+    material_name
+ORDER BY 
+    highest_order_cost DESC;
+![view2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/selectView2.2.png)
+
+
+--VIEW 3. Select employee name, role, training instructor, training date, and training location for all employees who have participated in any guidance sessions.
+
+CREATE OR REPLACE VIEW v_employee_training_participation AS
+SELECT 
+    e.ename AS employee_name,
+    e.erole AS employee_role,
+    g.ginstructor AS instructor_name,
+    g.gdate AS training_date,
+    g.glocation AS training_location
+FROM 
+    employee e
+JOIN 
+    assignto a ON e.eid = a.eid     
+JOIN 
+    guidence g ON a.gid = g.gid; 
+
+ ![view3 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/selectView3.png)   
+
+    --queries to check the view:
+
+    --Return how many training sessions have been held at each location, ordered by the number of sessions in descending order.
+    SELECT 
+    training_location, 
+    COUNT(*) AS sessions_count
+FROM 
+    v_employee_training_participation
+GROUP BY 
+    training_location
+ORDER BY 
+    sessions_count DESC;
+
+![view3.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/view3.1.png)
+
+
+    --Return all the employees who have participated in training sessions with a specific instructor- Yossi peretz.
+    SELECT 
+    training_date, 
+    training_location, 
+    employee_name
+FROM 
+    v_employee_training_participation
+WHERE 
+    instructor_name = 'Yossi Peretz' 
+ORDER BY 
+    training_date ASC;
+
+![view3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/view3.2.png)
+
+
+
+
+
+
+
