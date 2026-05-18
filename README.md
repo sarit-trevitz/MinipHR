@@ -693,6 +693,7 @@ WHERE
 ORDER BY 
     training_date ASC;
 
+
 ![view3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/view3.2.png)
 
 
