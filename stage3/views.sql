@@ -1,5 +1,5 @@
 --VIEW 1. Employee assignment to each shift and branch.
-CREATE OR REPLACE VIEW v_branch_shifts_summary AS
+CREATE OR REPLACE VIEW public.v_branch_shifts_summary AS
 SELECT 
     s.Sid AS shift_id,
     s.Sdate AS shift_date,
@@ -8,9 +8,11 @@ SELECT
     e.Eid AS employee_id,
     e.Ename AS employee_name
 FROM 
-    shift s
+    public.shift s
 JOIN 
-    employee e ON s.semp_num = e.Eid
+    public.schedule sch ON s.Sid = sch.Sid 
+JOIN 
+    public.employee e ON sch.Eid = e.Eid
 WHERE 
     s.Bid IS NOT NULL;
 

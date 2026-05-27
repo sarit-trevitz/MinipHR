@@ -566,7 +566,9 @@ SELECT
 FROM 
     public.shift s
 JOIN 
-    public.employee e ON s.semp_num = e.Eid
+    public.schedule sch ON s.Sid = sch.Sid 
+JOIN 
+    public.employee e ON sch.Eid = e.Eid
 WHERE 
     s.Bid IS NOT NULL;
 
@@ -629,7 +631,7 @@ WHERE
     current_stock < 100
 ORDER BY 
     current_stock ASC;
-![view2.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/selectView2.1.png)
+![view2.1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/View2.1.png)
 
     --return the maximum order total cost for each material, along with the material name and the total
 
@@ -644,7 +646,7 @@ GROUP BY
     material_name
 ORDER BY 
     highest_order_cost DESC;
-![view2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/selectView2.2.png)
+![view2.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/View2.2.png)
 
 
 --VIEW 3. Select employee name, role, training instructor, training date, and training location for all employees who have participated in any guidance sessions.
