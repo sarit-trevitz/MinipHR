@@ -654,7 +654,6 @@ ORDER BY
 CREATE OR REPLACE VIEW v_employee_training_participation AS
 SELECT 
     e.ename AS employee_name,
-    e.erole AS employee_role,
     g.ginstructor AS instructor_name,
     g.gdate AS training_date,
     g.glocation AS training_location
@@ -699,8 +698,354 @@ ORDER BY
 ![view3.2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/view3.2.png)
 
 
+stage 4:
+
+1. This function increse the salary of the employee who participated in more then 3 guidneces and decrease the salary of the employee who did not participates in any guidneces.
+for each employee that his salary was incresed we check his amount of shift in this current month , if there are less then 10 shift we decrease his salary back.
+
+code:
+
+
+-- trigger:
+-- Description: calculates the average salary for a role and compares it to the updated salary of an employee.
+CREATE OR REPLACE FUNCTION compare_salary_to_role_average()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_role_name VARCHAR(100);
+    v_avg_salary NUMERIC;
+BEGIN
+
+    SELECT Rname INTO v_role_name FROM public.Role WHERE Rid = NEW.Rid;
+
+    SELECT AVG(hsalary) INTO v_avg_salary 
+    FROM public.Has 
+    WHERE Rid = NEW.Rid;
+
+    IF NEW.hsalary > v_avg_salary THEN
+        RAISE NOTICE 'Salary Analysis: Employee ID % (Role: %) has a salary of %, which is ABOVE the role average of %.', 
+                     NEW.Eid, v_role_name, NEW.hsalary,v_avg_salary;
+    ELSIF NEW.hsalary < v_avg_salary THEN
+        RAISE NOTICE 'Salary Analysis: Employee ID % (Role: %) has a salary of %, which is BELOW the role average of %.', 
+                     NEW.Eid, v_role_name, NEW.hsalary,v_avg_salary;
+    ELSE
+        RAISE NOTICE 'Salary Analysis: Employee ID % (Role: %) has a salary of %, which is EQUAL to the role average of %.', 
+                     NEW.Eid, v_role_name, NEW.hsalary,v_avg_salary;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Description: trigger that analyzes salary updates against the role average.
+CREATE TRIGGER trg_analyze_salary_against_average
+AFTER UPDATE ON public.Has
+FOR EACH ROW
+EXECUTE FUNCTION compare_salary_to_role_average();
+
+
+--functuion
+-- Description: Iterates through all employees, evaluates guidance sessions,and changes salaries accordingly,
+--              while returning a Ref Cursor of promoted employees for further analysis.
+CREATE OR REPLACE FUNCTION change_salaries_by_guidnece_attendance()
+RETURNS REFCURSOR AS $$
+DECLARE
+    ref_out REFCURSOR := 'promoted_employees_cursor';
+    v_emp RECORD;
+    v_training_count INT;
+BEGIN
+    RAISE NOTICE '--- Function: Evaluating guidance sessions and applying raises ---';
+
+    FOR v_emp IN SELECT Eid, Ename FROM public.employee LOOP
+
+        SELECT COUNT(*) INTO v_training_count 
+        FROM public.assignto 
+        WHERE Eid = v_emp.Eid;
+
+        BEGIN
+            IF v_training_count > 3 THEN
+                UPDATE public.Has 
+                SET hsalary = hsalary * 1.05 
+                WHERE Eid = v_emp.Eid;
+       
+            ELSIF v_training_count = 0 THEN
+                UPDATE public.Has 
+                SET hsalary = hsalary * 0.95 
+                WHERE Eid = v_emp.Eid;
+                
+            END IF;
+            
+        EXCEPTION
+      
+            WHEN CHECK_VIOLATION THEN
+                RAISE WARNING 'Function Catch: Salary reduction failed for %! Cannot fall below 7000.', v_emp.Ename;
+        END;
+        
+    END LOOP;
+
+
+    OPEN ref_out FOR 
+        SELECT h.Eid, e.Ename 
+        FROM public.Has h
+        JOIN public.employee e ON h.Eid = e.Eid
+        JOIN public.assignto ast ON h.Eid = ast.Eid
+        GROUP BY h.Eid, e.Ename
+        HAVING COUNT(ast.gid) > 3;
+        
+    RETURN ref_out;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- 3. procedure
+-- Description: call the function and for each promoted employee, 
+--              it counts how many shift he has in the current month and if he has less than 10 shifts, his salary decrase by 5%.
+CREATE OR REPLACE PROCEDURE check_shifts_and_adjust_penalties() AS $$
+DECLARE
+    v_cursor REFCURSOR;
+    v_eid INT;
+    v_ename VARCHAR(100);
+    v_shift_count INT;
+BEGIN
+
+    v_cursor := change_salaries_by_guidnece_attendance();
+    
+    RAISE NOTICE '--- Procedure: Evaluating monthly shift loads via Ref Cursor ---';
+    
+
+    LOOP
+        FETCH v_cursor INTO v_eid, v_ename;
+        EXIT WHEN NOT FOUND;
+        
+        SELECT COUNT(*) INTO v_shift_count 
+        FROM public.schedule 
+        WHERE Eid = v_eid;
+        
+        IF v_shift_count < 10 THEN
+            BEGIN
+                UPDATE public.Has 
+                SET hsalary = hsalary * 0.95 
+                WHERE Eid = v_eid;
+                RAISE NOTICE 'Procedure Penalty applied to %.', v_ename;
+            
+            EXCEPTION
+                WHEN CHECK_VIOLATION THEN
+                    RAISE WARNING 'Check Violation Catch: Penalty failed for %. Salary cannot fall below 7000.', v_ename;
+            END;
+        ELSE
+            RAISE NOTICE 'Procedure Analysis: % maintains a healthy shift load (% shifts).', v_ename, v_shift_count;
+        END IF;
+    END LOOP;
+    
+    CLOSE v_cursor;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- 4.main fuction
+-- Description: Main function that call the procedure.
+DO $$
+BEGIN
+    RAISE NOTICE '========= MAIN PROGRAM 1: START WORKFLOW =========';
+
+    CALL check_shifts_and_adjust_penalties();
+    
+    RAISE NOTICE '========= MAIN PROGRAM 1: WORKFLOW COMPLETED =========';
+END $$;
+
+
+The database before the executing:
+
+-- The eamployees that did not participated in any guidneces
+![ database before 0 guidneces image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main1DB0before.png)
+
+-- The eamployees that participated in more than 3 guidneces
+![database before 3 guidneces image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main1DB3before.png)
+
+
+Executing the program:
+![Execution 1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main1.1.png)
+
+![Execution 2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main1.2.png)
+
+![Execution 2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main1.3.png)
 
 
 
+The database after the executing:
+-- The eamployees that did not participated in any guidneces
+![database after 0 guidneces image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main1DB0after.png)
+
+-- The eamployees that participated in more than 3 guidneces
+![database after 3 guidneces image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main1DB3after.png)
+
+
+2. This function reorder materials that his stock was less then 50.
+In addition increse the prices of these materials that have many orders. 
+
+code:
+
+--trigger
+-- Description: Trigger function that automatically restocks raw materials by adding 100 
+--              units to Stock_Quantity whenever a new item is added to the includes table.
+CREATE OR REPLACE FUNCTION alert_and_update_material_stock()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_material_name VARCHAR(100);
+BEGIN
+
+    UPDATE public.rawmaterial
+    SET Stock_Quantity = Stock_Quantity + 100
+    WHERE R_id = NEW.r_id;
+
+    SELECT R_name INTO v_material_name 
+    FROM public.rawmaterial 
+    WHERE R_id = NEW.r_id;
+
+    RAISE NOTICE 'Automatic Trigger Notification: Material "%" (ID: %) was added to order %. Stock successfully updated with +100 units.', 
+                 v_material_name, NEW.r_id, NEW.order_id;
+                 
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Description: trigger function that updates material stock levels after a new record is inserted into the includes table.
+CREATE TRIGGER trg_update_material_stock
+AFTER INSERT ON public.includes
+FOR EACH ROW
+EXECUTE FUNCTION alert_and_update_material_stock();
+
+
+--function
+-- Description: function that manages low stock levels and automates the reorder process, while also returning a Ref Cursor with materials currently in pending orders for further analysis.
+CREATE OR REPLACE FUNCTION manage_low_stock_and_reorder()
+RETURNS REFCURSOR AS $$
+DECLARE
+    ref_out REFCURSOR := 'reordered_materials_cursor';
+    v_mat_id INT;
+    v_mat_name VARCHAR(100);
+    v_stock INT;
+    v_new_order_id INT;
+    v_supplier_id INT;
+    
+    mat_cursor CURSOR FOR 
+        SELECT R_id, R_name, Stock_Quantity FROM public.rawmaterial;
+BEGIN
+
+    SELECT S_id INTO v_supplier_id FROM public.supplier LIMIT 1;
+    IF v_supplier_id IS NULL THEN
+        RAISE EXCEPTION 'No suppliers found in the database. Cannot proceed with reorder process.';
+    END IF;
+
+    OPEN mat_cursor;
+    LOOP
+        FETCH mat_cursor INTO v_mat_id, v_mat_name, v_stock;
+        EXIT WHEN NOT FOUND;
+        
+        IF v_stock < 50 THEN
+            SELECT COALESCE(MAX(order_id), 0) + 1 INTO v_new_order_id FROM public.supplyorder;
+            
+            INSERT INTO public.supplyorder (order_id, order_date, order_status, total, s_id)
+            VALUES (v_new_order_id, CURRENT_DATE, 'Pending', 100.00, v_supplier_id);
+            
+            INSERT INTO public.includes (order_id, r_id)
+            VALUES (v_new_order_id, v_mat_id);
+            
+            RAISE NOTICE 'Function generated automated reorder for Material: "%" (Order ID: %).', 
+                         v_mat_name, v_new_order_id;
+        END IF;
+    END LOOP;
+    CLOSE mat_cursor;
+
+    OPEN ref_out FOR 
+        SELECT DISTINCT rm.R_id, rm.R_name
+        FROM public.rawmaterial rm
+        JOIN public.includes inc ON rm.R_id = inc.r_id
+        JOIN public.supplyorder so ON inc.order_id = so.order_id
+        WHERE so.Order_status = 'Pending';
+        
+    RETURN ref_out;
+END;
+$$ LANGUAGE plpgsql;
+
+
+--procedure
+-- Description: the procedure call the function that manage low stock and reorder, 
+--              and then iterates through the returned Ref Cursor to evaluate the popularity of each material
+--              based on the total number of orders,updating prices accordingly.
+CREATE OR REPLACE PROCEDURE increase_material_prices_by_orders_amount() AS $$
+DECLARE
+    v_cursor REFCURSOR;
+    v_mat_id INT;
+    v_mat_name VARCHAR(100);
+    v_total_orders_count INT;
+BEGIN
+
+    v_cursor := manage_low_stock_and_reorder();
+    
+    RAISE NOTICE '--- Procedure starting price evaluation loop via Ref Cursor ---';
+    
+    LOOP
+        FETCH v_cursor INTO v_mat_id, v_mat_name;
+        EXIT WHEN NOT FOUND;
+        
+        SELECT COUNT(*) INTO v_total_orders_count 
+        FROM public.includes 
+        WHERE r_id = v_mat_id;
+        
+        IF v_total_orders_count > 5 and v_total_orders_count < 10 THEN
+            UPDATE public.rawmaterial 
+            SET R_price = R_price * 1.10
+            WHERE R_id = v_mat_id;
+            
+            RAISE NOTICE 'Price Update: Material "%" is highly popular (% orders). Price increased.', 
+                         v_mat_name, v_total_orders_count;
+                         
+        ELSIF v_total_orders_count >= 10 THEN
+            UPDATE public.rawmaterial 
+            SET R_price = R_price * 1.15 
+            WHERE R_id = v_mat_id;
+            
+            RAISE NOTICE 'Price Update: Material "%" is popular (% orders). Price increased.', 
+                         v_mat_name, v_total_orders_count;
+        ELSE
+            RAISE NOTICE 'Price Analysis: Material "%" has stable demand (% orders). No price change.', 
+                         v_mat_name, v_total_orders_count;
+        END IF;
+        
+    END LOOP;
+    CLOSE v_cursor;
+END;
+$$ LANGUAGE plpgsql;
+
+
+--main function
+-- Description: Main function that calls the procedure that increase material prices by orders amount.
+DO $$
+BEGIN
+    RAISE NOTICE '========= MAIN PROGRAM 2: START WORKFLOW =========';
+    
+    CALL increase_material_prices_by_orders_amount();
+    
+    RAISE NOTICE '========= MAIN PROGRAM 2: WORKFLOW COMPLETED =========';
+END $$;
+
+
+The database before the executing:
+
+-- The materials that have less then 50 stock quantities
+![materials less 50 before image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main2before.png)
+
+
+Executing the program:
+![Execution 1 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main2.1.png)
+
+![Execution 2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main2.2.png)
+
+![Execution 2 image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main2.3.png)
+
+
+The database after the executing:
+-- The materials that have less then 50 stock quantities
+![materials less 50 after image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main2after.png)
 
 

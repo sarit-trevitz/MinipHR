@@ -79,11 +79,10 @@ ORDER BY
     highest_order_cost DESC;
 
 
---VIEW 3. Select employee name, role, training instructor, training date, and training location for all employees who have participated in any guidance sessions.
+--VIEW 3. Select employee name,  training instructor, training date, and training location for all employees who have participated in any guidance sessions.
 CREATE OR REPLACE VIEW v_employee_training_participation AS
 SELECT 
     e.ename AS employee_name,
-    e.erole AS employee_role,
     g.ginstructor AS instructor_name,
     g.gdate AS training_date,
     g.glocation AS training_location
