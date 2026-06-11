@@ -1049,3 +1049,77 @@ The database after the executing:
 ![materials less 50 after image](https://github.com/sarit-trevitz/MinipHR/blob/main/images/main2after.png)
 
 
+Stage 5: Graphical interfaces.
+
+
+Getting Started & How to Run the Application:
+
+Follow these steps to set up and run the application locally on your machine:
+
+1. Prerequisites: Make sure you have Node.js and Docker installed on your computer.
+
+2. Clone the Repository: Download the project code to your local machine using git clone.
+
+3. Database Setup: Open your terminal in the project root directory and run the following command to start your local PostgreSQL database cluster:
+docker-compose up -d
+
+4. Install Dependencies: Run the package installation command to download all required frontend and backend source packages:
+npm install
+
+5. Launch the Project: Start the local development server by executing:
+npm run dev
+
+6. Access the Web App: Open your browser and navigate to http://localhost:3000 to interact with the enterprise ledger system.
+
+Development Workflow & Tools:
+
+
+This application was engineered as a robust, fully typed full-stack system built with modern software architecture patterns:
+
+
+Frontend Architecture: Developed using React and TypeScript to ensure complete type safety across all database record models. Dynamic layout transitions and component popups are powered by Framer Motion, while iconography is handled seamlessly via Lucide React.
+
+
+Styling Framework: Built with Tailwind CSS using a highly customized corporate identity system. The user interface applies custom typography, rounded dashboard card treatments, and real-time scannable progress bars for tracking workplace headcount limits.
+
+
+State Management: Implemented using a centralized global React Context provider (HRContext). This provider directly coordinates multi-table relational storage operations, keeping local runtime variables perfectly synchronized with backend endpoints.
+
+
+Database & Infrastructure: Managed locally inside a containerized Docker environment running PostgreSQL. The schema utilizes strict primary and foreign key constraints to represent enterprise logistical linkages.
+
+
+Relational Integrity Shield: To completely protect database compliance and eliminate orphaned foreign key anomalies, a custom front-end validation layer checks dependent intersection records (such as shift schedules and material order inclusions) prior to executing any backend deletion statements.
+
+Screenshots of the application:
+
+
+Welcome scrren:
+![application1 screen](https://github.com/sarit-trevitz/MinipHR/blob/main/images/welcomeScreen.png)
+
+
+SQL queries screen:
+![application2 screen](https://github.com/sarit-trevitz/MinipHR/blob/main/images/SQLqueriesScreen.png)
+
+
+Functions screen:
+![application3 screen](https://github.com/sarit-trevitz/MinipHR/blob/main/images/functionsScreen.png)
+
+
+Branch screen:
+![application4 screen](https://github.com/sarit-trevitz/MinipHR/blob/main/images/branchScreen5.png)
+
+
+Add shift screen:
+![application5 screen](https://github.com/sarit-trevitz/MinipHR/blob/main/images/addShiftScreen.png)
+
+
+Search role screen:
+![application6 screen](https://github.com/sarit-trevitz/MinipHR/blob/main/images/searchRoleScreen.png)
+
+
+Update event screen
+![application7 screen](https://github.com/sarit-trevitz/MinipHR/blob/main/images/updateEventScreen.png)
+
+
+
