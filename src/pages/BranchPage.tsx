@@ -1,3 +1,5 @@
+
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -15,18 +17,22 @@ import {
   Edit2,
   Trash2,
   Search,
-  Database
+  Database,
+  AlertTriangle 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion'; // שימוש בגרסה היציבה
+import { motion, AnimatePresence } from 'framer-motion';
 import { useHR } from '../context/HRContext';
-import { branch as BranchType } from '../types'; // שימוש באות קטנה לפי קובץ ה-types ומתן כינוי ברור
+import { branch as BranchType } from '../types';
 
-export default function BranchPage() { // שם הקומפוננטה מתחיל באות גדולה
-  // Utilizing the synchronized multi-table generic operations from our live context
-  const { branch: branchList, createRecord, updateRecord, deleteRecord } = useHR();
-  const [searchTerm, setSearchTerm] = useState(''); // State חדש לניהול החיפוש
+export default function BranchPage() {
+  const { branch: branchList, shift: shiftList, createRecord, updateRecord, deleteRecord } = useHR();
+  const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<BranchType | null>(null);
+
+ 
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
   
   const initialFormState = {
     bid: '',
@@ -38,7 +44,6 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
 
   const [formData, setFormData] = useState(initialFormState);
 
-  // סינון דינמי של הסניפים לפי שם או ID של הסניף
   const filteredBranches = branchList.filter((b) =>
     b.bname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     String(b.bid).toLowerCase().includes(searchTerm.toLowerCase())
@@ -50,7 +55,6 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
     setIsModalOpen(true);
   };
 
-  // Requirement Fulfilled: Auto-fills all existing record values into the form fields based on key selection
   const handleOpenEdit = (item: BranchType) => {
     setEditingBranch(item);
     setFormData({
@@ -66,7 +70,6 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (editingBranch) {
-      // Generic Update Operation mapping table name, key column, target ID value and payload
       const success = await updateRecord('branch', 'bid', editingBranch.bid, {
         bname: formData.bname,
         baddress: formData.baddress,
@@ -75,7 +78,6 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
       });
       if (success) setIsModalOpen(false);
     } else {
-      // Generic Insertion Operation creating a structured numeric primary key configuration
       const success = await createRecord('branch', {
         bid: formData.bid ? Number(formData.bid) : branchList.length + 1,
         bname: formData.bname,
@@ -85,6 +87,23 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
       });
       if (success) setIsModalOpen(false);
     }
+  };
+
+  
+  const handleDeleteClick = (branchItem: BranchType) => {
+    
+    const dependentShiftsCount = shiftList.filter(s => {
+      const shiftBid = s.bid !== undefined ? s.bid : (s as any).Bid;
+      return Number(shiftBid) === Number(branchItem.bid);
+    }).length;
+
+    if (dependentShiftsCount > 0) {
+      setAlertMessage("This store node cannot be deleted because there are active operational shifts assigned to this branch location.");
+      setIsAlertOpen(true);
+      return;
+    }
+
+    deleteRecord('branch', 'bid', Number(branchItem.bid));
   };
 
   return (
@@ -109,7 +128,6 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
         </button>
       </header>
 
-      {/* סרגל החיפוש החדש - זהה לעיצוב של ה-Employee וה-Role */}
       <div className="bg-white rounded-2xl border border-brand-ink/5 shadow-sm p-6 flex items-center justify-between">
         <div className="relative max-w-md w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30" size={16} />
@@ -127,7 +145,6 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
         </div>
       </div>
 
-      {/* Grid של כרטיסי הסניפים המפולטרים */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredBranches.map((branchItem) => (
           <motion.div 
@@ -136,7 +153,6 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-[2rem] border border-brand-ink/5 shadow-sm overflow-hidden hover:shadow-xl hover:shadow-brand-ink/5 transition-all group relative"
           >
-            {/* Control Panel Actions for Updates and Deletions */}
             <div className="absolute top-4 left-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
               <button 
                 onClick={() => handleOpenEdit(branchItem)}
@@ -146,7 +162,7 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
                 <Edit2 size={14} />
               </button>
               <button 
-                onClick={() => deleteRecord('branch', 'bid', branchItem.bid)}
+                onClick={() => handleDeleteClick(branchItem)}
                 className="p-2 bg-white rounded-xl text-brand-secondary hover:bg-brand-primary hover:text-white transition-colors shadow-sm cursor-pointer border border-brand-ink/5"
                 title="Delete Location Node"
               >
@@ -196,6 +212,47 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
         ))}
       </div>
 
+      {/* מודאל אזהרה דקורטיבי ומעוצב - חסימת מחיקה סניף */}
+      <AnimatePresence>
+        {isAlertOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAlertOpen(false)}
+              className="absolute inset-0 bg-brand-ink/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 text-center overflow-hidden border border-brand-ink/5"
+            >
+              <div className="absolute top-0 inset-x-0 h-2 bg-brand-secondary" />
+              <div className="w-16 h-16 bg-brand-secondary/10 text-brand-secondary flex items-center justify-center rounded-2xl mx-auto mb-6">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-2xl font-black tracking-tighter italic serif text-brand-ink mb-2">
+                Action Restricted
+              </h3>
+              <p className="text-[10px] opacity-40 uppercase tracking-widest font-black mb-4">
+                Relational Integrity Shield
+              </p>
+              <p className="text-sm font-medium text-brand-ink/70 leading-relaxed px-2 mb-8">
+                {alertMessage}
+              </p>
+              <button
+                onClick={() => setIsAlertOpen(false)}
+                className="w-full bg-brand-ink text-white hover:bg-brand-secondary py-4 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-md transition-all cursor-pointer"
+              >
+                Acknowledge Requirement
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Structured CRUD Modification Form Modal */}
       <AnimatePresence>
         {isModalOpen && (
@@ -230,7 +287,6 @@ export default function BranchPage() { // שם הקומפוננטה מתחיל �
                 </button>
               </div>
 
-              {/* הוספת גלגלת מובנית למודאל עם הגבלת גובה חכמה ומראה נקי */}
               <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[75vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-brand-ink/10">
                 <div className="space-y-4">
                   {!editingBranch && (
