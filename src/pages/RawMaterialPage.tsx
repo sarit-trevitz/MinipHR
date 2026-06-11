@@ -1,3 +1,5 @@
+
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -15,18 +17,31 @@ import {
   Layers,
   Search,
   Database,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion'; // התאמה לגרסה היציבה של framer-motion
+import { motion, AnimatePresence } from 'framer-motion'; 
 import { useHR } from '../context/HRContext';
-import { rawMaterial as RawMaterialType } from '../types'; // התאמה מדויקת לטיפוס בקובץ ה-types
+import { rawMaterial as RawMaterialType } from '../types'; 
 
-export default function RawMaterialPage() { // שם הקומפוננטה שונה לאות גדולה
-  // שינוי שם המערך ל-rawMaterialList למניעת התנגשויות ודריסת משתנים גלובליים
-  const { rawmaterial: rawMaterialList, createRecord, updateRecord, deleteRecord } = useHR();
+export default function RawMaterialPage() { 
+  
+  const { 
+    rawmaterial: rawMaterialList, 
+    requires: requiresList,     
+    includes: includesList,     
+    createRecord, 
+    updateRecord, 
+    deleteRecord 
+  } = useHR();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<RawMaterialType | null>(null);
+
+  
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
   const initialFormState = {
     r_id: '',
@@ -38,7 +53,6 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
 
   const [formData, setFormData] = useState(initialFormState);
 
-  // שימוש ב-rawMaterialList המעודכן לצורך פילטור בטוח
   const filteredMaterials = rawMaterialList.filter(rm => 
     rm.r_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     String(rm.r_id).toLowerCase().includes(searchTerm.toLowerCase())
@@ -50,7 +64,6 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
     setIsModalOpen(true);
   };
 
-  // Requirement Fulfilled: Instantly auto-fills all interactive inputs from selected raw material token metadata
   const handleOpenEdit = (material: RawMaterialType) => {
     setEditingMaterial(material);
     setFormData({
@@ -74,17 +87,47 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
     };
 
     if (editingMaterial) {
-      // Dispatching PUT request targeting the specified primary key ID column 'r_id'
       const success = await updateRecord('rawmaterial', 'r_id', editingMaterial.r_id, payload);
       if (success) setIsModalOpen(false);
     } else {
-      // Dispatching POST request inserting a new inventory block inside PostgreSQL catalog
       const success = await createRecord('rawmaterial', {
         r_id: formData.r_id ? Number(formData.r_id) : rawMaterialList.length + 1,
         ...payload
       });
       if (success) setIsModalOpen(false);
     }
+  };
+
+  
+  const handleDeleteClick = (material: RawMaterialType) => {
+    const matId = Number(material.r_id);
+
+   
+    const linkedDesignsCount = (requiresList || []).filter(req => {
+      const reqRid = req.r_id !== undefined ? req.r_id : (req as any).R_id;
+      return Number(reqRid) === matId;
+    }).length;
+
+    if (linkedDesignsCount > 0) {
+      setAlertMessage("This raw material cannot be purged because it is required by active product design blueprints.");
+      setIsAlertOpen(true);
+      return;
+    }
+
+   
+    const linkedOrdersCount = (includesList || []).filter(inc => {
+      const incRid = inc.r_id !== undefined ? inc.r_id : (inc as any).R_id;
+      return Number(incRid) === matId;
+    }).length;
+
+    if (linkedOrdersCount > 0) {
+      setAlertMessage("Action restricted. This material asset is included inside active vendor supply orders.");
+      setIsAlertOpen(true);
+      return;
+    }
+
+   
+    deleteRecord('rawmaterial', 'r_id', matId);
   };
 
   return (
@@ -109,7 +152,7 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
         </button>
       </header>
 
-      {/* Control Search Panel bar */}
+      
       <div className="bg-white rounded-2xl border border-brand-ink/5 shadow-sm p-6 flex items-center justify-between">
         <div className="relative max-w-md w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30" size={16} />
@@ -127,7 +170,7 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
         </div>
       </div>
 
-      {/* Grid rendering database catalog supply components directly */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMaterials.map((material) => (
           <motion.div 
@@ -136,7 +179,7 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-[2rem] border border-brand-ink/5 shadow-sm overflow-hidden hover:shadow-xl hover:shadow-brand-ink/5 transition-all group relative flex flex-col justify-between"
           >
-            {/* Tuple CRUD control operators panel */}
+           
             <div className="absolute top-4 left-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
               <button 
                 onClick={() => handleOpenEdit(material)}
@@ -145,7 +188,7 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
                 <Edit2 size={13} />
               </button>
               <button 
-                onClick={() => deleteRecord('rawmaterial', 'r_id', material.r_id)}
+                onClick={() => handleDeleteClick(material)}
                 className="p-2 bg-white rounded-xl border border-brand-ink/5 text-brand-secondary shadow-sm hover:bg-brand-secondary hover:text-white transition-colors cursor-pointer"
               >
                 <Trash2 size={13} />
@@ -153,7 +196,7 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
             </div>
 
             <div>
-              {/* Card visual banner context */}
+              
               <div className="h-24 bg-brand-secondary/10 relative overflow-hidden flex items-center justify-center">
                 <Boxes size={36} className="text-brand-secondary opacity-20 group-hover:scale-110 transition-transform duration-500" />
                 <div className="absolute top-4 right-4 bg-brand-ink text-white font-mono text-[8px] font-black px-2.5 py-1 rounded-full tracking-widest shadow-sm">
@@ -170,7 +213,7 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
                   </div>
                 </div>
 
-                {/* Stock volume evaluation metrics */}
+                
                 <div className="bg-brand-ink/[0.02] border border-brand-ink/5 p-4 rounded-xl flex justify-between items-center">
                   <div>
                     <p className="text-[7px] uppercase tracking-widest font-black opacity-30 mb-0.5">Warehouse Balance</p>
@@ -187,7 +230,7 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
               </div>
             </div>
 
-            {/* Financial tracking footer */}
+            
             <div className="p-8 pt-0 mt-auto border-t border-brand-ink/5 h-16 flex items-center justify-between bg-brand-ink/[0.01]">
               <div className="flex items-center gap-0.5 font-mono font-black text-brand-ink text-sm">
                 <DollarSign size={13} className="opacity-30" />
@@ -204,7 +247,48 @@ export default function RawMaterialPage() { // שם הקומפוננטה שונ�
         ))}
       </div>
 
-      {/* Relational Supply Properties Entry Overlay Form Modal */}
+      
+      <AnimatePresence>
+        {isAlertOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAlertOpen(false)}
+              className="absolute inset-0 bg-brand-ink/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 text-center overflow-hidden border border-brand-ink/5"
+            >
+              <div className="absolute top-0 inset-x-0 h-2 bg-brand-secondary" />
+              <div className="w-16 h-16 bg-brand-secondary/10 text-brand-secondary flex items-center justify-center rounded-2xl mx-auto mb-6">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-2xl font-black tracking-tighter italic serif text-brand-ink mb-2">
+                Action Restricted
+              </h3>
+              <p className="text-[10px] opacity-40 uppercase tracking-widest font-black mb-4">
+                Relational Integrity Shield
+              </p>
+              <p className="text-sm font-medium text-brand-ink/70 leading-relaxed px-2 mb-8">
+                {alertMessage}
+              </p>
+              <button
+                onClick={() => setIsAlertOpen(false)}
+                className="w-full bg-brand-ink text-white hover:bg-brand-secondary py-4 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-md transition-all cursor-pointer"
+              >
+                Acknowledge Requirement
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">

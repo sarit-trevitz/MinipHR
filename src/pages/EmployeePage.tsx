@@ -16,18 +16,20 @@ import {
   X,
   MapPin,
   Calendar,
-  Award
+  Award,
+  AlertTriangle, 
+  Check
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion'; // התאמה ל-framer-motion היציב
+import { motion, AnimatePresence } from 'framer-motion';
 import { useHR } from '../context/HRContext';
-import { employee as EmployeeType } from '../types'; // שימוש בטיפוס באותיות קטנות לפי קובץ ה-types
+import { employee as EmployeeType } from '../types';
 
-export default function EmployeePage() { // שם הקומפוננטה שונה לאות גדולה
-  // שינוי שמות המערכים למניעת התנגשויות ודריסת משתנים גלובליים בלולאות
+export default function EmployeePage() {
   const { 
     employee: employeeList, 
     role: roleList, 
     has, 
+    schedule, 
     createRecord, 
     updateRecord, 
     deleteRecord 
@@ -36,8 +38,10 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeType | null>(null);
+
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
   
-  // הגדרת State הכולל את כל שדות העובד ואת שדות טבלת הקשר Has
   const [formData, setFormData] = useState({
     eid: '',
     ename: '',
@@ -46,8 +50,8 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
     eaddress: '',
     edate: new Date().toISOString().split('T')[0],
     eseniority: 0,
-    rid: '',      // שיוך לתפקיד בטבלת הקשר
-    hsalary: 50   // קביעת שכר בטבלת הקשר
+    rid: '',      
+    hsalary: 50   
   });
 
   const filteredEmployee = employeeList.filter(emp => 
@@ -72,14 +76,11 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
     setIsModalOpen(true);
   };
 
-  // דרישה: בזמן עדכון (update) - המערכת מביאה את יתר השדות מהמפתח ומשם מעדכנים
   const handleOpenEdit = (emp: EmployeeType) => {
     setEditingEmployee(emp);
 
-    // שליפת רשומת השכר והתפקיד הנוכחית של העובד מטבלת הקשר
     const currentHas = has.find(h => h.eid === emp.eid);
 
-    // פרסור בטוח של התאריך לטופס
     let formattedDate = '';
     if (emp.edate) {
       const d = new Date(emp.edate);
@@ -113,11 +114,9 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
     };
 
     if (editingEmployee) {
-      // 1. עדכון ישות העובד בטבלה הראשית (עמידה בחתימה התקנית של ה-API הגנרי)
       const empSuccess = await updateRecord('employee', 'eid', editingEmployee.eid, employeePayload);
       
       if (empSuccess && formData.rid) {
-        // 2. עדכון רשומת התפקיד והשכר בטבלת הקשר בעקיפין
         await updateRecord('has', 'eid', editingEmployee.eid, {
           rid: Number(formData.rid),
           hsalary: Number(formData.hsalary)
@@ -127,14 +126,12 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
     } else {
       const targetEid = formData.eid ? Number(formData.eid) : employeeList.length + 1;
       
-      // 1. יצירת רשומת עובד חדשה
       const empSuccess = await createRecord('employee', {
         eid: targetEid,
         ...employeePayload
       });
 
       if (empSuccess && formData.rid) {
-        // 2. קישור לתפקיד ולשכר בטבלת הקשר Has
         await createRecord('has', {
           eid: targetEid,
           rid: Number(formData.rid),
@@ -143,6 +140,23 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
       }
       setIsModalOpen(false);
     }
+  };
+
+  const handleDeleteClick = async (emp: EmployeeType) => {
+    const activeShiftsCount = (schedule || []).filter(sch => {
+      const schEid = sch.eid !== undefined ? sch.eid : (sch as any).Eid;
+      return Number(schEid) === Number(emp.eid);
+    }).length;
+
+    if (activeShiftsCount > 0) {
+      setAlertMessage("This employee record cannot be purged because they are currently assigned to active operational shifts.");
+      setIsAlertOpen(true);
+      return;
+    }
+
+    await deleteRecord('has', 'eid', Number(emp.eid));
+    
+    deleteRecord('employee', 'eid', Number(emp.eid));
   };
 
   return (
@@ -178,9 +192,8 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
             </thead>
             <tbody className="divide-y divide-brand-ink/5">
               {filteredEmployee.map((emp) => {
-                // דרישה: הצגת שמות ותפקידים במקום מזהים (IDs) בעזרת find על מפתחות זרים
                 const relation = has.find(hr => hr.eid === emp.eid);
-                const matchedRole = roleList.find(r => r.rid === relation?.rid); // שונה שם המשתנה מ-role ל-matchedRole למניעת קריסה
+                const matchedRole = roleList.find(r => r.rid === relation?.rid); 
                 
                 return (
                   <tr key={emp.eid} className="hover:bg-brand-primary/[0.01] transition-colors group">
@@ -208,7 +221,7 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button onClick={() => handleOpenEdit(emp)} className="p-2 hover:bg-brand-ink/5 rounded-lg text-brand-primary"><Edit2 size={13} /></button>
-                        <button onClick={() => deleteRecord('employee', 'eid', emp.eid)} className="p-2 hover:bg-brand-secondary/10 rounded-lg text-brand-secondary"><Trash2 size={13} /></button>
+                        <button onClick={() => handleDeleteClick(emp)} className="p-2 hover:bg-brand-secondary/10 rounded-lg text-brand-secondary"><Trash2 size={13} /></button>
                       </div>
                     </td>
                   </tr>
@@ -219,7 +232,48 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
         </div>
       </div>
 
-      {/* מודאל ניהול פרופיל מקיף המאפשר CRUD מלא לשתי הטבלאות הקשורות */}
+      
+      <AnimatePresence>
+        {isAlertOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAlertOpen(false)}
+              className="absolute inset-0 bg-brand-ink/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 text-center overflow-hidden border border-brand-ink/5"
+            >
+              <div className="absolute top-0 inset-x-0 h-2 bg-brand-secondary" />
+              <div className="w-16 h-16 bg-brand-secondary/10 text-brand-secondary flex items-center justify-center rounded-2xl mx-auto mb-6">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-2xl font-black tracking-tighter italic serif text-brand-ink mb-2">
+                Action Restricted
+              </h3>
+              <p className="text-[10px] opacity-40 uppercase tracking-widest font-black mb-4">
+                Relational Integrity Shield
+              </p>
+              <p className="text-sm font-medium text-brand-ink/70 leading-relaxed px-2 mb-8">
+                {alertMessage}
+              </p>
+              <button
+                onClick={() => setIsAlertOpen(false)}
+                className="w-full bg-brand-ink text-white hover:bg-brand-secondary py-4 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-md transition-all cursor-pointer"
+              >
+                Acknowledge Requirement
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-brand-ink/60 backdrop-blur-sm">
@@ -231,7 +285,7 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
                 <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-brand-ink/5 rounded-lg"><X size={18}/></button>
               </div>
               
-              <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
+              <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1 text-left no-scrollbar">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {!editingEmployee && (
                     <div className="sm:col-span-2 space-y-1">
@@ -253,31 +307,39 @@ export default function EmployeePage() { // שם הקומפוננטה שונה �
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] uppercase tracking-widest font-black opacity-40">Seniority Years</label>
-                    <input required type="number" min="0" className="w-full p-3.5 bg-brand-ink/5 rounded-xl text-sm font-mono font-bold border-none focus:ring-2 focus:ring-brand-primary" value={formData.eseniority} onChange={e => setFormData({...formData, eseniority: Number(e.target.value) || 0})} />
+                    <input required type="number" placeholder="0" className="w-full p-3.5 bg-brand-ink/5 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-brand-primary" value={formData.eseniority} onChange={e => setFormData({...formData, eseniority: Number(e.target.value)})} />
                   </div>
                   <div className="sm:col-span-2 space-y-1">
-                    <label className="text-[10px] uppercase tracking-widest font-black opacity-40">Physical Residence Address</label>
-                    <input required type="text" placeholder="123 Herzl St, Tel Aviv" className="w-full p-3.5 bg-brand-ink/5 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-brand-primary" value={formData.eaddress} onChange={e => setFormData({...formData, eaddress: e.target.value})} />
+                    <label className="text-[10px] uppercase tracking-widest font-black opacity-40">Physical Home Address</label>
+                    <input required type="text" placeholder="123 Main St, City" className="w-full p-3.5 bg-brand-ink/5 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-brand-primary" value={formData.eaddress} onChange={e => setFormData({...formData, eaddress: e.target.value})} />
                   </div>
-                 
-
-                  {/* דרישת שיוך תפקיד ושכר בעקיפין דרך טבלת קשר מתוך המסך */}
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase tracking-widest font-black opacity-40">Corporate Position Designation (FK Mapping)</label>
-                    <select required className="w-full p-3.5 bg-brand-ink/5 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-brand-primary appearance-none bg-white" value={formData.rid} onChange={e => setFormData({...formData, rid: e.target.value})}>
-                      <option value="">Select Role</option>
-                      {roleList.map(r => <option key={r.rid} value={r.rid}>{r.rname}</option>)}
+                    <label className="text-[10px] uppercase tracking-widest font-black opacity-40">Hiring Date</label>
+                    <input required type="date" className="w-full p-3.5 bg-brand-ink/5 rounded-xl text-sm font-mono font-bold border-none focus:ring-2 focus:ring-brand-primary" value={formData.edate} onChange={e => setFormData({...formData, edate: e.target.value})} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-widest font-black opacity-40">Corporate Role Assignment</label>
+                    <select required className="w-full p-3.5 bg-brand-ink/5 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-brand-primary bg-white appearance-none" value={formData.rid} onChange={e => setFormData({...formData, rid: e.target.value})}>
+                      <option value="">Select Corporate Role</option>
+                      {roleList.map(r => (
+                        <option key={r.rid} value={r.rid}>{r.rname} (ID: {r.rid})</option>
+                      ))}
                     </select>
                   </div>
                   <div className="sm:col-span-2 space-y-1">
-                    <label className="text-[10px] uppercase tracking-widest font-black opacity-40">Hourly Salary Assignment (Has.hsalary)</label>
-                    <input required type="number" min="0" className="w-full p-3.5 bg-brand-ink/5 rounded-xl text-sm font-mono font-bold border-none focus:ring-2 focus:ring-brand-primary" value={formData.hsalary} onChange={e => setFormData({...formData, hsalary: Number(e.target.value) || 0})} />
+                    <label className="text-[10px] uppercase tracking-widest font-black opacity-40">Hourly Salary Rate ($ / hr)</label>
+                    <input required type="number" min="1" className="w-full p-3.5 bg-brand-ink/5 rounded-xl text-sm font-mono font-bold border-none focus:ring-2 focus:ring-brand-primary" value={formData.hsalary} onChange={e => setFormData({...formData, hsalary: Number(e.target.value)})} />
                   </div>
                 </div>
 
-                <div className="flex gap-4 pt-4 border-t mt-4">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs border border-brand-ink/10 cursor-pointer hover:bg-brand-ink/5 transition-colors">Cancel</button>
-                  <button type="submit" className="flex-1 bg-brand-primary text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs cursor-pointer hover:opacity-90 transition-opacity">Commit Record</button>
+                <div className="flex gap-4 pt-4 sticky bottom-0 bg-white">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs border-2 border-brand-ink/10 hover:bg-brand-ink/5 transition-all cursor-pointer">
+                    Cancel Transaction
+                  </button>
+                  <button type="submit" className="flex-1 bg-brand-primary text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-brand-ink transition-all shadow-lg shadow-brand-primary/20 cursor-pointer">
+                    <Check size={18} />
+                    {editingEmployee ? 'Sync Profile' : 'Commit Token'}
+                  </button>
                 </div>
               </form>
             </motion.div>

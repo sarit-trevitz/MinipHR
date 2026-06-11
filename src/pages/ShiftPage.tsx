@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -17,7 +18,8 @@ import {
   FileText,
   Hash,
   MapPin,
-  Search
+  Search,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays, startOfWeek } from 'date-fns';
@@ -34,8 +36,11 @@ export default function ShiftPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<ShiftType | null>(null);
   
-  
   const [searchSid, setSearchSid] = useState('');
+
+  
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
   
   const initialFormState = {
     sid: '',
@@ -111,6 +116,25 @@ export default function ShiftPage() {
     }
   };
 
+  
+  const handleDeleteClick = (shiftItem: any) => {
+    const shiftId = shiftItem.sid !== undefined ? shiftItem.sid : (shiftItem as any).Sid;
+    
+    
+    const assignedCount = (schedule || []).filter(sch => {
+      const schSid = sch.sid !== undefined ? sch.sid : (sch as any).Sid;
+      return Number(schSid) === Number(shiftId);
+    }).length;
+
+    if (assignedCount > 0) {
+      setAlertMessage("This shift layout cannot be purged because active personnel are currently assigned to this time slot.");
+      setIsAlertOpen(true);
+      return;
+    }
+
+    deleteRecord('shift', 'sid', Number(shiftId));
+  };
+
   const isSameDayCheck = (shiftDateInput: any, targetDateObj: Date): boolean => {
     if (!shiftDateInput) return false;
     const targetStr = format(targetDateObj, 'yyyy-MM-dd');
@@ -120,7 +144,6 @@ export default function ShiftPage() {
     return String(shiftDateInput).split('T')[0] === targetStr;
   };
 
-  
   const renderShiftCard = (shiftItem: any) => {
     const shiftId = shiftItem.sid !== undefined ? shiftItem.sid : (shiftItem as any).Sid;
     const shiftType = shiftItem.stype || (shiftItem as any).Stype || 'Morning';
@@ -147,7 +170,6 @@ export default function ShiftPage() {
         key={shiftId} 
         className="bg-white rounded-[2rem] border border-brand-ink/5 p-8 hover:shadow-xl hover:shadow-brand-ink/5 transition-all group relative overflow-hidden"
       >
-  
         <div className="absolute top-6 left-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
           <button 
             onClick={() => handleOpenEdit(shiftItem)}
@@ -157,7 +179,7 @@ export default function ShiftPage() {
             <Edit2 size={12} />
           </button>
           <button 
-            onClick={() => deleteRecord('shift', 'sid', shiftId)}
+            onClick={() => handleDeleteClick(shiftItem)}
             className="p-2 bg-white rounded-xl border border-brand-ink/5 text-brand-secondary shadow-sm hover:bg-brand-secondary hover:text-white transition-colors cursor-pointer"
             title="Delete Shift Tuple"
           >
@@ -206,7 +228,6 @@ export default function ShiftPage() {
           </div>
         </div>
 
-      
         <div className="space-y-4 pt-4 border-t border-brand-ink/5">
           <div className="space-y-2">
             <p className="text-[8px] uppercase tracking-widest font-black opacity-30">Assigned Team Personnel</p>
@@ -255,7 +276,6 @@ export default function ShiftPage() {
     );
   };
 
-  
   const globalFilteredShifts = shiftList.filter(s => {
     const shiftId = s.sid !== undefined ? s.sid : (s as any).Sid;
     return String(shiftId).includes(searchSid.trim());
@@ -275,7 +295,6 @@ export default function ShiftPage() {
           </p>
         </div>
         
-       
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
           <div className="relative flex items-center">
             <Search size={14} className="absolute left-4 opacity-40 text-brand-ink pointer-events-none" />
@@ -306,7 +325,6 @@ export default function ShiftPage() {
         </div>
       </header>
 
-      
       <AnimatePresence>
         {!searchSid && (
           <motion.div 
@@ -363,7 +381,6 @@ export default function ShiftPage() {
         )}
       </AnimatePresence>
 
-      
       <AnimatePresence mode="wait">
         {searchSid.trim() !== '' ? (
           <motion.div 
@@ -395,7 +412,6 @@ export default function ShiftPage() {
             )}
           </motion.div>
         ) : (
-          /* תצוגת המטריצה השבועית הרגילה לפי סניפים ותאריכים */
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }}
@@ -437,6 +453,47 @@ export default function ShiftPage() {
         )}
       </AnimatePresence>
 
+      {/* מודאל אזהרה דקורטיבי ומעוצב - חסימת מחיקה משמרת */}
+      <AnimatePresence>
+        {isAlertOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAlertOpen(false)}
+              className="absolute inset-0 bg-brand-ink/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 text-center overflow-hidden border border-brand-ink/5"
+            >
+              <div className="absolute top-0 inset-x-0 h-2 bg-brand-secondary" />
+              <div className="w-16 h-16 bg-brand-secondary/10 text-brand-secondary flex items-center justify-center rounded-2xl mx-auto mb-6">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-2xl font-black tracking-tighter italic serif text-brand-ink mb-2">
+                Action Restricted
+              </h3>
+              <p className="text-[10px] opacity-40 uppercase tracking-widest font-black mb-4">
+                Relational Integrity Shield
+              </p>
+              <p className="text-sm font-medium text-brand-ink/70 leading-relaxed px-2 mb-8">
+                {alertMessage}
+              </p>
+              <button
+                onClick={() => setIsAlertOpen(false)}
+                className="w-full bg-brand-ink text-white hover:bg-brand-secondary py-4 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-md transition-all cursor-pointer"
+              >
+                Acknowledge Requirement
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Structured CRUD Form Dialog Modal */}
       <AnimatePresence>
         {isModalOpen && (
@@ -473,7 +530,6 @@ export default function ShiftPage() {
 
               <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 text-left no-scrollbar">
                 <div className="grid grid-cols-2 gap-4">
-                  
                   {!editingShift && (
                     <div className="col-span-2 space-y-2">
                       <label className="text-[10px] uppercase tracking-widest font-black opacity-40 ml-1">Shift ID (Numeric Primary Key)</label>

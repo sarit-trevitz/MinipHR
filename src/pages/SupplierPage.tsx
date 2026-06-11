@@ -1,3 +1,4 @@
+  
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -15,18 +16,30 @@ import {
   Database,
   MapPin,
   Phone,
-  Info
+  Info,
+  AlertTriangle 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion'; // התאמה לגרסה היציבה של framer-motion
+import { motion, AnimatePresence } from 'framer-motion'; 
 import { useHR } from '../context/HRContext';
-import { supplier as SupplierType } from '../types'; // שימוש בטיפוס באותיות קטנות לפי קובץ ה-types
+import { supplier as SupplierType } from '../types'; 
 
-export default function SupplierPage() { // שם הקומפוננטה שונה לאות גדולה
-  // שינוי שם המשתנה ל-supplierList למניעת התנגשויות ודריסת משתנים גלובליים
-  const { supplier: supplierList, createRecord, updateRecord, deleteRecord } = useHR();
+export default function SupplierPage() { 
+  
+  const { 
+    supplier: supplierList, 
+    supplyorder: supplyOrderList, 
+    createRecord, 
+    updateRecord, 
+    deleteRecord 
+  } = useHR();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<SupplierType | null>(null);
+
+ 
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
   const initialFormState = {
     s_id: '',
@@ -38,7 +51,6 @@ export default function SupplierPage() { // שם הקומפוננטה שונה �
 
   const [formData, setFormData] = useState(initialFormState);
 
-  // שימוש ב-supplierList המעודכן לצורך פילטור בטוח
   const filteredSupplier = supplierList.filter(s => 
     s.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     String(s.s_id).toLowerCase().includes(searchTerm.toLowerCase())
@@ -65,12 +77,14 @@ export default function SupplierPage() { // שם הקומפוננטה שונה �
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    // ניסיון פרסור של מחרוזת הטקסט מהטופס בחזרה לאובייקט JSON חוקי
+    
     let parsedMetadata = {};
     try {
       parsedMetadata = JSON.parse(formData.supplier_metadata);
     } catch (err) {
-      alert("שגיאה: שדה Supplier Metadata אינו מכיל מבנה JSON תקין.");
+      
+      setAlertMessage("Error: Supplier Metadata field does not contain a valid JSON object structure.");
+      setIsAlertOpen(true);
       return;
     }
 
@@ -91,6 +105,25 @@ export default function SupplierPage() { // שם הקומפוננטה שונה �
       });
       if (success) setIsModalOpen(false);
     }
+  };
+
+ 
+  const handleDeleteClick = (supplierItem: SupplierType) => {
+    const supplierId = Number(supplierItem.s_id);
+
+   
+    const dependentOrdersCount = (supplyOrderList || []).filter(order => {
+      const orderSid = order.s_id !== undefined ? order.s_id : (order as any).S_id;
+      return Number(orderSid) === supplierId;
+    }).length;
+
+    if (dependentOrdersCount > 0) {
+      setAlertMessage("This logistical supplier node cannot be purged because there are active supply orders mapped to this vendor.");
+      setIsAlertOpen(true);
+      return;
+    }
+
+    deleteRecord('supplier', 's_id', supplierId);
   };
 
   return (
@@ -119,11 +152,11 @@ export default function SupplierPage() { // שם הקומפוננטה שונה �
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredSupplier.map((supplierItem) => ( // שימוש ב-supplierItem למניעת דריסה
+        {filteredSupplier.map((supplierItem) => ( 
           <motion.div key={supplierItem.s_id} className="bg-white rounded-[2rem] border border-brand-ink/5 p-8 flex flex-col justify-between hover:shadow-xl hover:shadow-brand-ink/5 transition-all group relative">
             <div className="absolute top-6 left-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
               <button onClick={() => handleOpenEdit(supplierItem)} className="p-2 bg-white rounded-xl border border-brand-ink/5 text-brand-primary shadow-sm hover:bg-brand-ink hover:text-white transition-colors cursor-pointer"><Edit2 size={13} /></button>
-              <button onClick={() => deleteRecord('supplier', 's_id', supplierItem.s_id)} className="p-2 bg-white rounded-xl border border-brand-ink/5 text-brand-secondary shadow-sm hover:bg-brand-secondary hover:text-white transition-colors cursor-pointer"><Trash2 size={13} /></button>
+              <button onClick={() => handleDeleteClick(supplierItem)} className="p-2 bg-white rounded-xl border border-brand-ink/5 text-brand-secondary shadow-sm hover:bg-brand-secondary hover:text-white transition-colors cursor-pointer"><Trash2 size={13} /></button>
             </div>
 
             <div>
@@ -148,6 +181,47 @@ export default function SupplierPage() { // שם הקומפוננטה שונה �
         ))}
       </div>
 
+      
+      <AnimatePresence>
+        {isAlertOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAlertOpen(false)}
+              className="absolute inset-0 bg-brand-ink/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 text-center overflow-hidden border border-brand-ink/5"
+            >
+              <div className="absolute top-0 inset-x-0 h-2 bg-brand-secondary" />
+              <div className="w-16 h-16 bg-brand-secondary/10 text-brand-secondary flex items-center justify-center rounded-2xl mx-auto mb-6">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-2xl font-black tracking-tighter italic serif text-brand-ink mb-2">
+                Action Restricted
+              </h3>
+              <p className="text-[10px] opacity-40 uppercase tracking-widest font-black mb-4">
+                Relational Integrity Shield
+              </p>
+              <p className="text-sm font-medium text-brand-ink/70 leading-relaxed px-2 mb-8">
+                {alertMessage}
+              </p>
+              <button
+                onClick={() => setIsAlertOpen(false)}
+                className="w-full bg-brand-ink text-white hover:bg-brand-secondary py-4 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-md transition-all cursor-pointer"
+              >
+                Acknowledge Requirement
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-brand-ink/60 backdrop-blur-sm">
@@ -159,7 +233,7 @@ export default function SupplierPage() { // שם הקומפוננטה שונה �
                 <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-brand-ink/5 rounded-lg"><X size={18}/></button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
+              <form onSubmit={handleSubmit} className="p-8 space-y-4 overflow-y-auto pr-1 flex-1 text-left no-scrollbar">
                 <div className="space-y-4">
                   {!editingSupplier && (
                     <div className="space-y-1">
@@ -184,9 +258,12 @@ export default function SupplierPage() { // שם הקומפוננטה שונה �
                     <textarea required className="w-full p-3.5 bg-brand-ink/5 rounded-xl text-sm font-mono font-bold border-none focus:ring-2 focus:ring-brand-primary h-28 resize-none bg-white" value={formData.supplier_metadata} onChange={e => setFormData({...formData, supplier_metadata: e.target.value})} />
                   </div>
                 </div>
-                <div className="flex gap-4 pt-4 border-t mt-4">
+                <div className="flex gap-4 pt-4 border-t mt-4 sticky bottom-0 bg-white">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs border border-brand-ink/10 cursor-pointer hover:bg-brand-ink/5 transition-colors">Cancel</button>
-                  <button type="submit" className="w-full bg-brand-secondary text-white py-4 rounded-xl font-black text-xs uppercase cursor-pointer hover:opacity-90 transition-opacity">{editingSupplier ? 'Sync Changes' : 'Execute Tuple'}</button>
+                  <button type="submit" className="w-full bg-brand-secondary text-white py-4 rounded-xl font-black text-xs uppercase cursor-pointer hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                    <Check size={16} />
+                    {editingSupplier ? 'Sync Changes' : 'Execute Tuple'}
+                  </button>
                 </div>
               </form>
             </motion.div>
