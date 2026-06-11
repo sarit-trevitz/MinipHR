@@ -1,5 +1,3 @@
-
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -212,7 +210,7 @@ export default function BranchPage() {
         ))}
       </div>
 
-      {/* מודאל אזהרה דקורטיבי ומעוצב - חסימת מחיקה סניף */}
+    
       <AnimatePresence>
         {isAlertOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">

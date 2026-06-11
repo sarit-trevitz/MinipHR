@@ -62,14 +62,13 @@ export default function DepartmentPage() {
   const handleOpenEdit = (dept: any) => {
     setEditingDepartment(dept);
     
-    // חילוץ סופר-מוגן של כל השדות כדי להתמודד עם אותיות גדולות/קטנות וערכי null מפוסטגרס 🛠️
+
     const deptId = dept.de_id !== undefined ? dept.de_id : (dept.De_id !== undefined ? dept.De_id : '');
     const deptName = dept.de_name || dept.De_name || '';
     const deptLocation = dept.location || dept.Location || '';
     const deptBudget = dept.budget !== undefined ? dept.budget : (dept.Budget !== undefined ? dept.Budget : '');
     const deptManagerName = dept.manager_name || dept.Manager_name || '';
-    
-    // נרמול קשיח למפתחות הזרים למניעת איפוס בטופס העריכה
+
     const deptEid = dept.eid !== undefined ? dept.eid : (dept.Eid !== undefined ? dept.Eid : '');
     const deptPlid = dept.pl_id !== undefined ? dept.pl_id : (dept.Pl_id !== undefined ? dept.Pl_id : '');
 
@@ -88,18 +87,17 @@ export default function DepartmentPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    // 1. ניקוי והמרה בטוחה של התקציב
+
     const numBudget = Number(formData.budget);
     const parsedBudget = isNaN(numBudget) ? 0.00 : numBudget;
 
-    // 2. בניית ה-Payload עם המרה מפורשת למספר (Number)
-    // אם הערך ריק, נשלח 0 או null בהתאם למה שהטבלה שלך דורשת ב-SQL
+
     const payload = {
       de_name: formData.de_name,
       location: formData.location,
       budget: parsedBudget,
       manager_name: formData.manager_name,
-      // כאן התיקון: מבטיחים שה-ID הוא מספר ולא טקסט
+
       eid: formData.eid ? parseInt(formData.eid, 10) : null,
       pl_id: formData.pl_id ? parseInt(formData.pl_id, 10) : null
     };
@@ -107,7 +105,7 @@ export default function DepartmentPage() {
     try {
       if (editingDepartment) {
         const targetDeId = editingDepartment.de_id || (editingDepartment as any).De_id;
-        console.log("Sending update payload:", payload); // תפתחי את ה-Console כדי לראות מה נשלח בדיוק
+        console.log("Sending update payload:", payload); 
         const success = await updateRecord('department', 'de_id', targetDeId, payload);
         if (success) setIsModalOpen(false);
       } else {

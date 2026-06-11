@@ -17,11 +17,11 @@ import {
   Trash2,
   Database,
   Search,
-  AlertTriangle, // אייקון אזהרה חדש עבור המודאל
+  AlertTriangle, 
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion"; // התאמה לגרסה היציבה של framer-motion
+import { motion, AnimatePresence } from "framer-motion"; 
 import { useHR } from "../context/HRContext";
-import { role as RoleType } from "../types"; // התאמה מדויקת לטיפוס באותיות קטנות מקובץ ה-types
+import { role as RoleType } from "../types"; 
 
 export default function RolePage() {
   const {
@@ -37,7 +37,7 @@ export default function RolePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<RoleType | null>(null);
 
-  // States חדשים לניהול מודאל האזהרה המעוצב של האפליקציה
+  
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
 
@@ -51,7 +51,7 @@ export default function RolePage() {
 
   const [formData, setFormData] = useState(initialFormState);
 
-  // סינון דינמי של התפקידים לפי שם התפקיד או ה-ID
+  
   const filteredRoles = roleList.filter((r) =>
     r.rname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     String(r.rid).toLowerCase().includes(searchTerm.toLowerCase())
@@ -107,7 +107,7 @@ export default function RolePage() {
     }
   };
 
-  // ניהול לחיצת מחיקה והקפצת מודאל אזהרה מעוצב במקום Alert דפדפן
+ 
   const handleDeleteClick = (roleItem: RoleType, employeeCount: number) => {
     if (employeeCount > 0) {
       setAlertMessage("This role cannot be deleted because there are active employees assigned to it.");
@@ -144,7 +144,7 @@ export default function RolePage() {
         </button>
       </header>
 
-      {/* סרגל חיפוש */}
+  
       <div className="bg-white rounded-2xl border border-brand-ink/5 shadow-sm p-6 flex items-center justify-between">
         <div className="relative max-w-md w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30" size={16} />
@@ -162,7 +162,7 @@ export default function RolePage() {
         </div>
       </div>
 
-      {/* Grid של כרטיסי התפקידים */}
+   
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {filteredRoles.map((roleItem) => {
           const roleEmployeeIds = has
@@ -275,7 +275,7 @@ export default function RolePage() {
         })}
       </div>
 
-      {/* מודאל אזהרה דקורטיבי ומעוצב של האפליקציה (Custom Alert Modal) */}
+  
       <AnimatePresence>
         {isAlertOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
@@ -292,7 +292,7 @@ export default function RolePage() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 text-center overflow-hidden border border-brand-ink/5"
             >
-              {/* אלמנט עיצובי עליון קטן */}
+             
               <div className="absolute top-0 inset-x-0 h-2 bg-brand-secondary" />
 
               <div className="w-16 h-16 bg-brand-secondary/10 text-brand-secondary flex items-center justify-center rounded-2xl mx-auto mb-6">
@@ -321,7 +321,7 @@ export default function RolePage() {
         )}
       </AnimatePresence>
 
-      {/* הטופס במודאל (Add/Edit) */}
+      
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">

@@ -7,7 +7,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { 
   employee, role, branch, shift, event, guidence,
   department, product_line, product, design, rawMaterial, supplyOrder, supplier,
-  schedule, participate, assignTo, has
+  schedule, participate, assignTo, has, requires
 } from '../types';
 
 interface HRContextType {
@@ -21,14 +21,14 @@ interface HRContextType {
   event: event[];
   guidence: guidence[];
   department: department[];
-  product_lines: product_line[]; // נשאר ברבים לשימוש נוח ב-State, אך משתמש בטיפוס product_line
+  product_lines: product_line[]; 
   product: product[];
   design: design[];
-  rawmaterial: rawMaterial[];   // מתאים לטיפוס rawMaterial
-  supplyorder: supplyOrder[];   // מתאים לטיפוס supplyOrder
+  rawmaterial: rawMaterial[];  
+  supplyorder: supplyOrder[];  
   supplier: supplier[];
-  
-  // טבלאות קשר (Junctions)
+  requires: requires[];
+
   schedule: schedule[];
   participate: participate[];
   assignTo: assignTo[];
@@ -37,7 +37,7 @@ interface HRContextType {
   constraints: any[];
   triggers: any[];
   
-  // פעולות CRUD מעודכנות ומסונכרנות
+
   createRecord: (tableName: string, recordData: any) => Promise<boolean>;
   updateRecord: (tableName: string, idCol: string, idVal: number | string, recordData: any) => Promise<boolean>;
   deleteRecord: (tableName: string, idCol: string, idVal: number | string) => Promise<boolean>;
@@ -69,7 +69,7 @@ export function HRProvider({ children }: { children: ReactNode }) {
   const [participate, setparticipate] = useState<participate[]>([]);
   const [assignTo, setassignTo] = useState<assignTo[]>([]);
   const [has, sethas] = useState<has[]>([]);
-
+  const [requires, setrequires] = useState<requires[]>([]);
   const [constraints, setConstraints] = useState<any[]>([]);
   const [triggers, setTriggers] = useState<any[]>([]);
 
@@ -77,8 +77,8 @@ export function HRProvider({ children }: { children: ReactNode }) {
     try {
       const dbTables = [
         'employee', 'role', 'branch', 'shift', 'event', 'guidence', 
-        'department', 'product_line', 'product', 'design', 'rawmaterial', 
-        'supplyorder', 'supplier', 'schedule', 'participate', 'assignto', 'has'
+        'department', 'product_line', 'product', 'design', 'rawmaterial',  
+        'supplyorder', 'supplier', 'schedule', 'participate', 'assignto', 'has','requires'
       ];
 
       const responses = await Promise.all(
@@ -105,6 +105,7 @@ export function HRProvider({ children }: { children: ReactNode }) {
       setparticipate(responses[14]);
       setassignTo(responses[15]);
       sethas(responses[16]);
+      setrequires(responses[17]);
 
       const metadataRes = await fetch('/api/database/metadata');
       if (metadataRes.ok) {
@@ -201,7 +202,7 @@ export function HRProvider({ children }: { children: ReactNode }) {
     <HRContext.Provider value={{
       isConnected, dbMode,
       employee, role, branch, shift, event, guidence, department, product_lines, product, design, rawmaterial, supplyorder, supplier,
-      schedule, participate, assignTo, has, constraints, triggers,
+      schedule, participate, assignTo, has, requires, constraints, triggers,
       createRecord, updateRecord, deleteRecord, runSqlQuery, runSqlProcedure
     }}>
       {children}
