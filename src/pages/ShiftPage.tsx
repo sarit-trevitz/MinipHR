@@ -453,7 +453,7 @@ export default function ShiftPage() {
         )}
       </AnimatePresence>
 
-      {/* מודאל אזהרה דקורטיבי ומעוצב - חסימת מחיקה משמרת */}
+      {/* Relational Integrity Alert Modal */}
       <AnimatePresence>
         {isAlertOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">

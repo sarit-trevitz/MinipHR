@@ -25,7 +25,6 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// קונפיגורציית חיבור למסד הנתונים - ניקוי רווחים ומרכאות מהגדרות קובץ ה-env
 const rawHost = process.env.PGHOST || "localhost";
 const host = rawHost.trim();
 const rawPort = process.env.PGPORT || "5432";
@@ -44,10 +43,7 @@ const pool = new Pool({
   ssl: false,
 });
 
-/**
- * פונקציית עזר גנרית שמכינה את הערכים של ה-Body לשאילתת ה-SQL.
- * היא מזהה שדות שמוגדרים כ-JSON ב-Types וממירה אותם לטקסט ש-Postgres יודע לקבל.
- */
+
 const preparePayloadValues = (data: any) => {
   return Object.entries(data).map(([key, value]) => {
     if (
@@ -144,7 +140,7 @@ app.delete("/api/crud/:table/:idCol/:idVal", async (req, res) => {
 //          COMPLEX ADVANCED QUERIES
 // ==========================================
 
-// א. שאילתת אירועים (Query #3 שלך) - מחזירה כמות משתתפים לכל אירוע ממוין עולה
+
 app.get("/api/custom-queries/event-participation", async (req, res) => {
   try {
     const { rows } = await pool.query(`
@@ -164,7 +160,7 @@ app.get("/api/custom-queries/event-participation", async (req, res) => {
   }
 });
 
-// ב. שאילתת תפקידים (Query #8 שלך) - מחזירה את התפקידים עם מינימום עובדים אבסולוטי (HAVING <= ALL)
+
 app.get("/api/custom-queries/minimum-roles", async (req, res) => {
   try {
     const { rows } = await pool.query(`
@@ -183,12 +179,12 @@ app.get("/api/custom-queries/minimum-roles", async (req, res) => {
     return res.status(500).json({ error: e.message });
   }
 });
-// ג. הרצת פרוצדורת משאבי אנוש ושכר - עם הדפסות לוג ממוקדות לאיתור הבאג
+
 app.post("/api/custom-procedures/run-hr-pipeline", async (req, res) => {
   try {
     console.log("\n--- [START] HR PIPELINE ANALYSIS ---");
 
-    // 1. הפעלת הפרוצדורה
+    
     await pool.query(`
       DO $$
       BEGIN
@@ -197,7 +193,7 @@ app.post("/api/custom-procedures/run-hr-pipeline", async (req, res) => {
     `);
     console.log("STEP 1: Stored Procedure executed.");
 
-    // 2. שליפת הנתונים מה-DB
+    
     const { rows: employees } = await pool.query(`SELECT * FROM employee`);
     const { rows: hasRelations } = await pool.query(`SELECT * FROM has`);
 
@@ -207,13 +203,13 @@ app.post("/api/custom-procedures/run-hr-pipeline", async (req, res) => {
     const belowAvgList: string[] = [];
     const equalAvgList: string[] = [];
 
-    // 3. מעבר על העובדים וניתוח הנתונים בלייב
+    
     employees.forEach((emp, index) => {
-      // בדיקה חסינה לאותיות גדולות/קטנות במפתחות (eid / Eid)
+      
       const empId = emp.eid !== undefined ? emp.eid : emp.Eid;
       const empName = emp.ename || emp.Ename || `Unknown #${index}`;
       
-      // מציאת השכר והתפקיד של העובד הנוכחי
+      
       const empHasData = hasRelations.find((h: any) => {
         const hasEid = h.eid !== undefined ? h.eid : h.Eid;
         return Number(hasEid) === Number(empId);
@@ -222,7 +218,7 @@ app.post("/api/custom-procedures/run-hr-pipeline", async (req, res) => {
       const currentSalary = empHasData ? Number(empHasData.hsalary !== undefined ? empHasData.hsalary : (empHasData.Hsalary || 0)) : 8500;
       const currentRid = empHasData ? (empHasData.rid !== undefined ? empHasData.rid : empHasData.Rid) : null;
 
-      // חישוב ממוצע השכר לתפקיד שלו
+      
       const roleSalaries = hasRelations
         .filter((h: any) => {
           const hasRid = h.rid !== undefined ? h.rid : h.Rid;
@@ -236,10 +232,10 @@ app.post("/api/custom-procedures/run-hr-pipeline", async (req, res) => {
 
       const salaryDifference = currentSalary - avgSalary;
 
-      // הדפסת אבחון ספציפית לכל עובד בטרמינל לראות מה קורה איתו
+      
       console.log(`Employee: ${empName} | Salary: ${currentSalary} | Role Avg: ${avgSalary.toFixed(2)} | Diff: ${salaryDifference.toFixed(2)}`);
 
-      // חלוקה לקבוצות
+      
       if (salaryDifference > 3) {
         aboveAvgList.push(empName);
       } else if (salaryDifference < -3) {
@@ -266,12 +262,12 @@ app.post("/api/custom-procedures/run-hr-pipeline", async (req, res) => {
 });
 
 
-// ד. הרצת פרוצדורת שרשרת אספקה ומלאי (Main Program 2) - משופר ומעובד בבקאנד לפי תוכנית העבודה שלך
+
 app.post("/api/custom-procedures/run-supply-pipeline", async (req, res) => {
   try {
     console.log("\n--- [START] SUPPLY PIPELINE ACTIVATED ---");
 
-    // 1. קריאה לפרוצדורה שמחדשת מלאי ומעלה מחירים ב-DB
+    
     await pool.query(`
       DO $$
       BEGIN
@@ -280,7 +276,6 @@ app.post("/api/custom-procedures/run-supply-pipeline", async (req, res) => {
     `);
     console.log("STEP 1: Procedure 'increase_material_prices_by_orders_amount' executed successfully.");
 
-    // 2. שליפת ה-order_id של כל ההזמנות שנוצרו היום
     const todayOrdersQuery = `
       SELECT order_id 
       FROM supplyorder 
@@ -289,16 +284,13 @@ app.post("/api/custom-procedures/run-supply-pipeline", async (req, res) => {
     const { rows: todayOrders } = await pool.query(todayOrdersQuery);
     const todayOrderIds = todayOrders.map(o => Number(o.order_id));
     
-    // הדפסת ה-Log לטרמינל בשבילך כדי לראות מה יצא
     console.log(`STEP 2: Found ${todayOrderIds.length} orders created TODAY. IDs:`, todayOrderIds);
 
-    // אם לא נוצרו הזמנות חדשות היום, נעצור כאן ונחזיר מערכים ריקים בצורה בטוחה
     if (todayOrderIds.length === 0) {
       console.log("--> No orders generated today. Exiting backend flow cleanly.");
       return res.json({ reordered: [], priceIncreased: [] });
     }
 
-    // 3. הולכים לטבלת INCLUDES ומוצאים את כל ה-r_id שמופיעים תחת ההזמנות של היום
     const includesQuery = `
       SELECT DISTINCT r_id 
       FROM includes 
@@ -312,11 +304,9 @@ app.post("/api/custom-procedures/run-supply-pipeline", async (req, res) => {
       return res.json({ reordered: [], priceIncreased: [] });
     }
 
-    // 4. מעבר על חומרי הגלם, מציאת שמותיהם מטבלת rawmaterial וביצוע בדיקת פופולריות
     const reorderedList: string[] = [];
     const priceIncreasedList: string[] = [];
 
-    // שאילתת עזר שסופרת את כמות ההזמנות הכוללת (היסטורית) של חומרי הגלם שהוזמנו היום
     const popularityQuery = `
       SELECT r_id, COUNT(*) as total_count 
       FROM includes 
@@ -325,7 +315,6 @@ app.post("/api/custom-procedures/run-supply-pipeline", async (req, res) => {
     `;
     const { rows: counts } = await pool.query(popularityQuery, [reorderedMaterialIds]);
 
-    // שליפת השמות הרלוונטיים של חומרי הגלם
     const namesQuery = `
       SELECT r_id, r_name 
       FROM rawmaterial 
@@ -333,19 +322,15 @@ app.post("/api/custom-procedures/run-supply-pipeline", async (req, res) => {
     `;
     const { rows: materials } = await pool.query(namesQuery, [reorderedMaterialIds]);
 
-    // חלוקת השמות לכרטיסים השונים על המסך
     materials.forEach(mat => {
       const matId = Number(mat.r_id);
       const matName = mat.r_name || `Material #${matId}`;
 
-      // צד ימין (הכחול): כל מי שהוזמן היום נכנס אוטומטית לרשימה
       reorderedList.push(matName);
 
-      // צend שמאל (הצהוב): מוצאים כמה רשומות הזמנה יש לו בכל ההיסטוריה של טבלת includes
       const matCountObj = counts.find(c => Number(c.r_id) === matId);
       const totalCount = matCountObj ? Number(matCountObj.total_count) : 0;
 
-      // אם המספר גדול מ-5, סימן שמדובר בחומר פופולרי שמחירו עלה!
       if (totalCount > 5) {
         priceIncreasedList.push(matName);
       }
@@ -356,7 +341,6 @@ app.post("/api/custom-procedures/run-supply-pipeline", async (req, res) => {
     console.log(" -> Price Increased Array:", priceIncreasedList);
     console.log("--- [END] SUPPLY PIPELINE FLOW COMPLETED ---\n");
 
-    // החזרת האובייקט המוגמר והמוכן ישירות לפרונטאנד של ה-React
     return res.json({ 
       reordered: reorderedList, 
       priceIncreased: priceIncreasedList 
@@ -368,7 +352,6 @@ app.post("/api/custom-procedures/run-supply-pipeline", async (req, res) => {
   }
 });
 
-// הפעלת שאילתות משלב 2 הישן (נקרא מתוך ה-DatabaseConsole במידה וקיים)
 app.post("/api/database/query", async (req, res) => {
   const { queryId } = req.body;
   const queryMap: Record<string, string> = {
@@ -388,7 +371,6 @@ app.post("/api/database/query", async (req, res) => {
   }
 });
 
-// הפעלת תתי-תוכניות/פרוצדורות משלב 4 הישן
 app.post("/api/database/procedure/:procId", async (req, res) => {
   const { procId } = req.params;
   try {
@@ -408,7 +390,6 @@ app.post("/api/database/procedure/:procId", async (req, res) => {
   }
 });
 
-// שירות מטא-דאטה
 app.get("/api/database/metadata", async (req, res) => {
   try {
     const tablesQuery = `
@@ -423,7 +404,6 @@ app.get("/api/database/metadata", async (req, res) => {
   }
 });
 
-// שילוב שרת ה-Vite
 async function bootstrap() {
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");

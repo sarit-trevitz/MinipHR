@@ -92,7 +92,7 @@ export default function GuidencePage() {
     try {
       parsedJsonSpecs = JSON.parse(formData.gdescription_json);
     } catch (err) {
-      alert("שגיאה: שדה Syllabus Topics אינו מכיל מבנה JSON/מערך תקין. יש להזין מבנה כגון: [\"Topic1\", \"Topic2\"]");
+      alert("Error: The Syllabus Topics field does not contain a valid JSON/array structure. Enter a structure such as: [\"Topic1\", \"Topic2\"]");
       return;
     }
  

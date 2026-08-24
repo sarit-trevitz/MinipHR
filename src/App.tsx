@@ -133,26 +133,26 @@ export default function App() {
           
           <main className="flex-1 p-8 max-w-7xl overflow-y-auto h-screen">
             <Routes>
-              {/* דף הבית המרכזי שמוביל ישירות למסך הנתונים והבקרה המאוחד */}
+              {/*Routes for the core system */}
               <Route path="/" element={<Welcome />} />
               
-              {/* ראוטים של ניהול כוח אדם וסניפים */}
+              {/*Routes for management */}
               <Route path="/employee" element={<EmployeePage />} />
               <Route path="/role" element={<RolePage />} />
               <Route path="/branch" element={<BranchPage />} />
               <Route path="/shift" element={<ShiftPage />} />
               
-              {/* ראוטים של אירועים והדרכות */}
+              {/*Routes for events and guidance */}
               <Route path="/event" element={<EventPage />} />
               <Route path="/guidence" element={<GuidencePage />} />
               
-              {/* ראוטים של קווי ייצור ומחלקות */}
+              {/*Routes for production lines and departments */}
               <Route path="/department" element={<DepartmentPage />} />
               <Route path="/product-lines" element={<ProductLinePage />} />
               <Route path="/product" element={<ProductPage />} />
               <Route path="/design" element={<DesignPage />} />
               
-              {/* ראוטים של שרשרת אספקה וחומרים */}
+              {/*Routes for supply chain and materials */}
               <Route path="/raw-materials" element={<RawMaterialPage />} />
               <Route path="/supplier" element={<SupplierPage />} />
               <Route path="/supply-orders" element={<SupplyOrderPage />} />

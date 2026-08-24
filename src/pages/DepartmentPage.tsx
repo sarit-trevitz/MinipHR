@@ -117,7 +117,7 @@ export default function DepartmentPage() {
       }
     } catch (error) {
       console.error("Update failed:", error);
-      alert("העדכון נכשל. בדקי ב-Console מה השגיאה מהשרת.");
+      alert("The update failed. Check the Console to see the error from the server.");
     }
   };
 
